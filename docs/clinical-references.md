@@ -26,9 +26,20 @@ HeartCheck Wise is a health-literacy and shared-decision aid. It is not a diagno
 
 ## Implementation safeguards
 
-- Internal qualitative weights are **not a validated cardiovascular risk score** and must never be shown as a percentage or labeled as a heart-risk score.
-- Future phase: integrate validated AHA PREVENT-ASCVD equations.
+- V7.5 contains **no internally weighted pseudo-risk score**. Action levels are based on transparent rule triggers only.
+- PREVENT-ASCVD is not calculated unless the validated equation and required inputs are explicitly implemented and tested.
+- CAC is presented only as a selective risk-reclassification discussion; age alone is not treated as an indication.
+- Lp(a) supports both mg/dL and nmol/L; risk-enhancing thresholds used by the tool are 50 mg/dL and 125 nmol/L.
 - CAC = 0 must never be presented as proof that CAD is absent.
 - Normal Echo must never be presented as proof that coronary stenosis is absent.
 - Invasive coronary angiography is never a routine screening test.
+- Known ASCVD exits the screening pathway and directs users to secondary-prevention care.
 - Acute/concerning symptoms override preventive-screening logic.
+
+## V7.5 production QA notes
+
+- Removed all arbitrary internal weighted risk scoring.
+- Added known ASCVD screening exclusion / hard stop.
+- Reframed CAC as selective shared decision-making after overall risk assessment.
+- Added Lp(a) dual-unit support.
+- Added input validation and regression tests for safety-critical rules.
