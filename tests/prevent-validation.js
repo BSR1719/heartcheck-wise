@@ -65,13 +65,22 @@ for (const bad of [
   {key:'sbp', value:89}, {key:'sbp', value:201},
   {key:'tc', value:129}, {key:'tc', value:321},
   {key:'hdl', value:19}, {key:'hdl', value:101},
-  {key:'bmi', value:18.4}, {key:'bmi', value:40},
   {key:'egfr', value:14}, {key:'egfr', value:141}
 ]) {
   const input = {sex:0,age:50,tc:200,hdl:50,sbp:120,dm:0,smoking:0,bmi:25,egfr:90,bptreat:0,statin:0};
   input[bad.key] = bad.value;
   const r = PREVENT.baseRisk(input);
   assert.strictEqual(r.ok, false, `${bad.key}=${bad.value} should fail validation`);
+}
+
+
+// BMI outside the HF-supported range suppresses only HF, preserving lipid outputs.
+for (const bmi of [18.4, 40]) {
+  const r = PREVENT.baseRisk({sex:0,age:50,tc:200,hdl:50,sbp:120,dm:0,smoking:0,bmi,egfr:90,bptreat:0,statin:0});
+  assert(r.ok, `BMI ${bmi} must not reject otherwise valid ASCVD/CVD inputs`);
+  assert(Number.isFinite(r.result.ascvd10) && Number.isFinite(r.result.cvd10));
+  assert.strictEqual(r.result.hf10, null);
+  assert.strictEqual(r.partial.hfSuppressed, true);
 }
 
 // MONOTONIC SANITY CHECKS — not a clinical oracle, but useful regression alarms.

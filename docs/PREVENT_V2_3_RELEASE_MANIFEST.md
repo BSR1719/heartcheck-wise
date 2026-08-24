@@ -18,7 +18,7 @@ UAT / pre-production candidate. Not yet a public clinical release.
 - PREVENT 10-year: age 30–79.
 - PREVENT 30-year: age 30–59 only.
 - ASCVD/CVD require lipid inputs and statin status; BMI is not required for these base outputs.
-- HF requires BMI; lipid inputs/statin are not required for HF base output.
+- HF requires BMI in the supported 18.5–39.9 kg/m² range; absent/out-of-range BMI suppresses HF without suppressing mathematically independent ASCVD/CVD outputs.
 - No silent substitution of normal values for missing inputs.
 - Inputs outside validated implementation ranges are rejected rather than silently clamped.
 
@@ -37,3 +37,10 @@ UAT / pre-production candidate. Not yet a public clinical release.
 
 ## Merge criterion
 The branch may be considered technically ready for a controlled UAT preview after CI is green. Public clinical deployment requires completion of `docs/PREVENT_V2_3_UAT.md` and explicit clinical governance approval.
+
+## Version traceability
+These identifiers are independent and must not be used interchangeably:
+- **HeartCheck Wise application version:** 8.0.0 (`VERSION`).
+- **PREVENT equation/source version:** AHAprevent R package 1.0.0 base equations; coefficients remain unchanged.
+- **UAT release version:** PREVENT v2.3.
+- **Git commit SHA:** injected into the isolated UAT artifact by the Pages workflow from the exact checked-out UAT source commit.
