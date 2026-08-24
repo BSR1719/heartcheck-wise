@@ -2,7 +2,7 @@ name: HeartCheck Wise QA
 
 on:
   push:
-    branches: [main, v8-simple-screening]
+    branches: [main, v8-simple-screening, prevent-v2-working-prototype]
   pull_request:
     branches: [main]
 
@@ -20,5 +20,9 @@ jobs:
         run: |
           node --check js/app.js
           node --check js/clinical-rules.js
-      - name: Clinical safety regression tests
+          node --check js/prevent-base.js
+          node --check tests/prevent-validation.js
+      - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
+      - name: PREVENT v2.1 numerical validation
+        run: node tests/prevent-validation.js
