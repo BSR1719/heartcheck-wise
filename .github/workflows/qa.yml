@@ -22,7 +22,10 @@ jobs:
           node --check js/clinical-rules.js
           node --check js/prevent-base.js
           node --check tests/prevent-validation.js
+          node --check tests/prevent-extended-validation.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
       - name: PREVENT v2.1 numerical validation
         run: node tests/prevent-validation.js
+      - name: PREVENT v2.2 extended clinical validation
+        run: node tests/prevent-extended-validation.js
