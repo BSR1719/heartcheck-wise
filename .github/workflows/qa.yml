@@ -25,14 +25,30 @@ jobs:
           node --check tests/prevent-validation.js
           node --check tests/prevent-extended-validation.js
           node --check tests/prevent-live-aha-parity.js
+          node --check tests/ui-functional-tests.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
       - name: PREVENT v2.1 deterministic reference validation
         run: node tests/prevent-validation.js
       - name: PREVENT v2.2 extended deterministic validation
         run: node tests/prevent-extended-validation.js
+      - name: Current UI functional tests
+        run: node tests/ui-functional-tests.js
       - name: PREVENT v2.3 optional live AHA verification
+        id: live_aha
+        timeout-minutes: 3
         run: node tests/prevent-live-aha-parity.js
+      - name: Report live AHA verification status
+        if: always()
+        run: |
+          status=$(jq -r '.summary.status // "UNAVAILABLE"' validation/prevent-live-aha-parity-report.json 2>/dev/null || echo UNAVAILABLE)
+          echo "### Live AHA parity: $status" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "UNAVAILABLE" ]; then
+            echo "::warning title=Live AHA parity UNAVAILABLE::External endpoint could not be verified; this is not a parity PASS."
+          elif [ "$status" != "PASS" ]; then
+            echo "::error title=Live AHA parity FAIL::Official comparison reported a discrepancy."
+            exit 1
+          fi
       - name: Upload live AHA verification report
         if: always()
         uses: actions/upload-artifact@v4

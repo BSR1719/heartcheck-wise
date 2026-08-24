@@ -4,6 +4,7 @@ const path = require('path');
 
 const AHA_API = 'https://professional.heart.org/aha-service/PHDSearch/PreventCalculate';
 const TOL = 0.051;
+const REQUEST_TIMEOUT_MS = 10000;
 
 const source = fs.readFileSync('js/prevent-base.js', 'utf8');
 const ctx = { console, Math };
@@ -87,19 +88,22 @@ function writeReport(report){
       res = await fetch(AHA_API, {
         method:'POST',
         headers:{'Content-Type':'application/json','Accept':'application/json','User-Agent':'heartcheck-wise-live-parity/1.0'},
-        body:JSON.stringify(payload(c))
+        body:JSON.stringify(payload(c)),
+        signal:AbortSignal.timeout(REQUEST_TIMEOUT_MS)
       });
     } catch (err) {
       report.summary = {status:'UNAVAILABLE',reason:`network error: ${err.message}`,cases_attempted:report.cases.length,comparisons};
       writeReport(report);
-      console.warn(`Live AHA parity unavailable: ${report.summary.reason}`);
+      console.warn(`::warning title=Live AHA parity UNAVAILABLE::${report.summary.reason}`);
+      console.warn(`Live AHA parity status: UNAVAILABLE (not a parity PASS)`);
       process.exit(0);
     }
 
     if(!res.ok){
       report.summary = {status:'UNAVAILABLE',reason:`AHA HTTP ${res.status}`,cases_attempted:report.cases.length,comparisons};
       writeReport(report);
-      console.warn(`Live AHA parity unavailable: ${report.summary.reason}. Deterministic reference tests remain authoritative for CI.`);
+      console.warn(`::warning title=Live AHA parity UNAVAILABLE::${report.summary.reason}`);
+      console.warn(`Live AHA parity status: UNAVAILABLE (not a parity PASS). Deterministic tests remain authoritative for CI.`);
       process.exit(0);
     }
 

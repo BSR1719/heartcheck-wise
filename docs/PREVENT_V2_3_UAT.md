@@ -55,7 +55,7 @@ Test on desktop and mobile widths.
 | UAT-08 | TC/HDL missing, BMI present | HF result available; CVD/ASCVD unavailable |
 | UAT-09 | BMI missing, TC/HDL present | CVD/ASCVD available; HF unavailable |
 | UAT-10 | TC 321 | Validation error; no risk result |
-| UAT-11 | BMI 40.0 | Validation error; no HF calculation |
+| UAT-11 | BMI 40.0 with complete lipids | ASCVD/CVD retained; HF suppressed with warning |
 | UAT-12 | Reset after a result | Form and result clear |
 
 ## Production rule
