@@ -12,21 +12,21 @@ function full(){base();elements.tc.value='200';elements.hdl.value='50';elements.
 function submit(){UI.submit({preventDefault(){}})}
 function has(s){return elements.result.innerHTML.includes(s)||elements.errors.innerHTML.includes(s)}
 test('emergency gate with empty calculator fields',()=>{redflags[0].checked=true;submit();assert(has('ประเมินเร่งด่วน'))});
-test('emergency precedes established CVD',()=>{redflags[0].checked=true;elements.ascvdHistory.value='1';submit();assert(has('ประเมินเร่งด่วน'));assert(!has('Secondary Prevention'))});
-test('secondary-prevention gate',()=>{elements.redflagNone.value='1';elements.ascvdHistory.value='1';submit();assert(has('Secondary Prevention'))});
-test('complete six-output profile',()=>{full();elements.age.value='59';submit();assert.equal((elements.result.innerHTML.match(/<strong>\d+\.\d%<\/strong>/g)||[]).length,6)});
-test('HF-only profile is explicitly HF',()=>{base();elements.heightCm.value='170';elements.weightKg.value='70';submit();assert(has('Heart Failure 10-year'));assert(has('HF) เท่านั้น'));assert(has('ASCVD risk unavailable'));assert(!has('High risk'))});
-test('ASCVD/CVD-only profile',()=>{base();elements.tc.value='200';elements.hdl.value='50';elements.statin.value='0';submit();assert(has('HF 10 ปี</span><strong>—'));assert(has('PREVENT-ASCVD'))});
-test('age 59 has 30-year outputs',()=>{full();elements.age.value='59';submit();assert(!has('ASCVD 30 ปี</span><strong>—'))});
-test('age 60 suppresses 30-year outputs',()=>{full();elements.age.value='60';submit();assert(has('ASCVD 30 ปี</span><strong>—'))});
-test('LDL-C 190 override',()=>{full();elements.ldl.value='190';submit();assert(has('LDL-C ≥190'))});
-test('SBP 180 override',()=>{full();elements.sbp.value='180';submit();assert(has('ความดันสูงมาก'))});
-test('DBP 120 override',()=>{full();elements.dbp.value='120';submit();assert(has('ความดันสูงมาก'))});
-test('missing TC or HDL rejected',()=>{base();elements.tc.value='200';submit();assert(has('provided together'))});
-test('missing height or weight rejected',()=>{base();elements.heightCm.value='170';submit();assert(has('provided together'))});
+test('emergency precedes established CVD',()=>{redflags[0].checked=true;elements.ascvdHistory.value='1';submit();assert(has('ประเมินเร่งด่วน'));assert(!has('แบบประเมินนี้ไม่เหมาะ'))});
+test('secondary-prevention gate',()=>{elements.redflagNone.value='1';elements.ascvdHistory.value='1';submit();assert(has('แบบประเมินนี้ไม่เหมาะกับผู้ที่เคยมีโรคหัวใจหรือหลอดเลือดแล้ว'))});
+test('complete six-output profile',()=>{full();elements.age.value='59';submit();assert.equal((elements.result.innerHTML.match(/<strong>\d+\.\d%<\/strong>/g)||[]).length,7)});
+test('HF-only profile is explicitly HF',()=>{base();elements.heightCm.value='170';elements.weightKg.value='70';submit();assert(has('ความเสี่ยงภาวะหัวใจล้มเหลวใน 10 ปี'));assert(has('ภาวะหัวใจล้มเหลวเท่านั้น'));assert(has('ยังประเมินไม่ได้'));assert(!has('ความเสี่ยงสูง'))});
+test('ASCVD/CVD-only profile',()=>{base();elements.tc.value='200';elements.hdl.value='50';elements.statin.value='0';submit();assert(has('ภาวะหัวใจล้มเหลว 10 ปี (HF)</span><strong>—'));assert(has('ความเสี่ยงโรคหลอดเลือดหัวใจหรือสมองใน 10 ปี'))});
+test('age 59 has 30-year outputs',()=>{full();elements.age.value='59';submit();assert(!has('โรคหลอดเลือดหัวใจ/สมอง 30 ปี (ASCVD)</span><strong>—'))});
+test('age 60 suppresses 30-year outputs',()=>{full();elements.age.value='60';submit();assert(has('โรคหลอดเลือดหัวใจ/สมอง 30 ปี (ASCVD)</span><strong>—'))});
+test('LDL-C 190 override',()=>{full();elements.ldl.value='190';submit();assert(has('LDL-C ของคุณสูงมาก'))});
+test('SBP 180 override',()=>{full();elements.sbp.value='180';submit();assert(has('ความดันของคุณสูงมาก'))});
+test('DBP 120 override',()=>{full();elements.dbp.value='120';submit();assert(has('ความดันของคุณสูงมาก'))});
+test('missing TC or HDL rejected',()=>{base();elements.tc.value='200';submit();assert(has('Total cholesterol and HDL-C must be provided together'))});
+test('missing height or weight rejected',()=>{base();elements.heightCm.value='170';submit();assert(has('Height and weight must be provided together'))});
 test('invalid height and weight rejected',()=>{base();elements.heightCm.value='99';elements.weightKg.value='301';submit();assert(has('Height must'));assert(has('Weight must'))});
-test('BMI lower boundary suppresses HF only',()=>{full();elements.heightCm.value='200';elements.weightKg.value='73.9';submit();assert(has('ระงับผล HF'));assert(!has('ASCVD 10 ปี</span><strong>—'))});
-test('BMI supported boundary produces HF',()=>{full();elements.heightCm.value='200';elements.weightKg.value='74';submit();assert(!has('HF 10 ปี</span><strong>—'))});
+test('BMI lower boundary suppresses HF only',()=>{full();elements.heightCm.value='200';elements.weightKg.value='73.9';submit();assert(has('ยังไม่แสดงความเสี่ยงภาวะหัวใจล้มเหลว'));assert(!has('โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)</span><strong>—'))});
+test('BMI supported boundary produces HF',()=>{full();elements.heightCm.value='200';elements.weightKg.value='74';submit();assert(!has('ภาวะหัวใจล้มเหลว 10 ปี (HF)</span><strong>—'))});
 test('reset clears outputs',()=>{full();submit();UI.reset();assert(elements.result.hidden);assert.equal(elements.result.innerHTML,'');assert.equal(elements.age.value,'')});
 test('unanswered clinical question is not No',()=>{base();elements.dm.value='';submit();assert(has('dm is required'))});
 console.log(`\nUI functional tests: ${passed}/18 passed, ${18-passed} failed`);if(process.exitCode)process.exit(process.exitCode);
