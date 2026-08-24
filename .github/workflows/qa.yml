@@ -5,6 +5,7 @@ on:
     branches: [main, v8-simple-screening, prevent-v2-working-prototype]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   safety-regression-tests:
@@ -23,9 +24,19 @@ jobs:
           node --check js/prevent-base.js
           node --check tests/prevent-validation.js
           node --check tests/prevent-extended-validation.js
+          node --check tests/prevent-live-aha-parity.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
       - name: PREVENT v2.1 numerical validation
         run: node tests/prevent-validation.js
       - name: PREVENT v2.2 extended clinical validation
         run: node tests/prevent-extended-validation.js
+      - name: PREVENT v2.3 live parity vs official AHA calculator
+        run: node tests/prevent-live-aha-parity.js
+      - name: Upload live parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prevent-live-aha-parity-report
+          path: validation/prevent-live-aha-parity-report.json
+          if-no-files-found: ignore
