@@ -11,25 +11,27 @@ function base(){elements.age.value='55';elements.sex.value='0';elements.sbp.valu
 function full(){base();elements.tc.value='200';elements.hdl.value='50';elements.statin.value='0';elements.heightCm.value='170';elements.weightKg.value='70'}
 function submit(){UI.submit({preventDefault(){}})}
 function has(s){return elements.result.innerHTML.includes(s)||elements.errors.innerHTML.includes(s)}
+function metricIsDash(label){return has(`${label}</span><strong>—`) }
+
 test('emergency gate with empty calculator fields',()=>{redflags[0].checked=true;submit();assert(has('ประเมินเร่งด่วน'))});
 test('emergency precedes established CVD',()=>{redflags[0].checked=true;elements.ascvdHistory.value='1';submit();assert(has('ประเมินเร่งด่วน'));assert(!has('แบบประเมินนี้ไม่เหมาะ'))});
 test('secondary-prevention gate',()=>{elements.redflagNone.value='1';elements.ascvdHistory.value='1';submit();assert(has('แบบประเมินนี้ไม่เหมาะกับผู้ที่เคยมีโรคหัวใจหรือหลอดเลือดแล้ว'))});
-test('complete six-output profile',()=>{full();elements.age.value='59';submit();assert.equal((elements.result.innerHTML.match(/<strong>\d+\.\d%<\/strong>/g)||[]).length,7)});
-test('HF-only profile is explicitly HF',()=>{base();elements.heightCm.value='170';elements.weightKg.value='70';submit();assert(has('ความเสี่ยงภาวะหัวใจล้มเหลวใน 10 ปี'));assert(has('ภาวะหัวใจล้มเหลวเท่านั้น'));assert(has('ยังประเมินไม่ได้'));assert(!has('ความเสี่ยงสูง'))});
-test('ASCVD/CVD-only profile',()=>{base();elements.tc.value='200';elements.hdl.value='50';elements.statin.value='0';submit();assert(has('ภาวะหัวใจล้มเหลว 10 ปี (HF)</span><strong>—'));assert(has('ความเสี่ยงโรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมองใน 10 ปี'))});
-test('age 59 has 30-year outputs',()=>{full();elements.age.value='59';submit();assert(!has('โรคหลอดเลือดหัวใจ/สมอง 30 ปี (ASCVD)</span><strong>—'))});
-test('age 60 suppresses 30-year outputs',()=>{full();elements.age.value='60';submit();assert(has('โรคหลอดเลือดหัวใจ/สมอง 30 ปี (ASCVD)</span><strong>—'))});
+test('complete six-output profile',()=>{full();elements.age.value='59';submit();assert(has('risk-number'));assert.equal((elements.result.innerHTML.match(/<div class="metric">/g)||[]).length,6);assert(!metricIsDash('โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)'));assert(!metricIsDash('โรคหัวใจและหลอดเลือดโดยรวม 10 ปี (CVD)'));assert(!metricIsDash('ภาวะหัวใจล้มเหลว 10 ปี (HF)'))});
+test('HF-only profile is explicitly HF',()=>{base();elements.heightCm.value='170';elements.weightKg.value='70';submit();assert(has('ภาวะหัวใจล้มเหลวเท่านั้น'));assert(has('ยังประเมินไม่ได้'));assert(!metricIsDash('ภาวะหัวใจล้มเหลว 10 ปี (HF)'));assert(metricIsDash('โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)'))});
+test('ASCVD/CVD-only profile',()=>{base();elements.tc.value='200';elements.hdl.value='50';elements.statin.value='0';submit();assert(metricIsDash('ภาวะหัวใจล้มเหลว 10 ปี (HF)'));assert(!metricIsDash('โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)'));assert(!metricIsDash('โรคหัวใจและหลอดเลือดโดยรวม 10 ปี (CVD)'))});
+test('age 59 has 30-year outputs',()=>{full();elements.age.value='59';submit();assert(!metricIsDash('โรคหลอดเลือดหัวใจ/สมอง 30 ปี (ASCVD)'))});
+test('age 60 suppresses 30-year outputs',()=>{full();elements.age.value='60';submit();assert(metricIsDash('โรคหลอดเลือดหัวใจ/สมอง 30 ปี (ASCVD)'))});
 test('LDL-C 190 override',()=>{full();elements.ldl.value='190';submit();assert(has('LDL-C ของคุณสูงมาก'))});
 test('SBP 180 override',()=>{full();elements.sbp.value='180';submit();assert(has('ความดันของคุณสูงมาก'))});
 test('DBP 120 override',()=>{full();elements.dbp.value='120';submit();assert(has('ความดันของคุณสูงมาก'))});
 test('missing TC or HDL rejected',()=>{base();elements.tc.value='200';submit();assert(has('Total cholesterol and HDL-C must be provided together'))});
 test('missing height or weight rejected',()=>{base();elements.heightCm.value='170';submit();assert(has('Height and weight must be provided together'))});
 test('invalid height and weight rejected',()=>{base();elements.heightCm.value='99';elements.weightKg.value='301';submit();assert(has('Height must'));assert(has('Weight must'))});
-test('BMI lower boundary suppresses HF only',()=>{full();elements.heightCm.value='200';elements.weightKg.value='73.9';submit();assert(has('ยังไม่แสดงความเสี่ยงภาวะหัวใจล้มเหลว'));assert(!has('โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)</span><strong>—'))});
-test('BMI supported boundary produces HF',()=>{full();elements.heightCm.value='200';elements.weightKg.value='74';submit();assert(!has('ภาวะหัวใจล้มเหลว 10 ปี (HF)</span><strong>—'))});
+test('BMI lower boundary suppresses HF only',()=>{full();elements.heightCm.value='200';elements.weightKg.value='73.9';submit();assert(has('ยังไม่แสดงความเสี่ยงภาวะหัวใจล้มเหลว'));assert(!metricIsDash('โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)'));assert(metricIsDash('ภาวะหัวใจล้มเหลว 10 ปี (HF)'))});
+test('BMI supported boundary produces HF',()=>{full();elements.heightCm.value='200';elements.weightKg.value='74';submit();assert(!metricIsDash('ภาวะหัวใจล้มเหลว 10 ปี (HF)'))});
 test('reset clears outputs',()=>{full();submit();UI.reset();assert(elements.result.hidden);assert.equal(elements.result.innerHTML,'');assert.equal(elements.age.value,'')});
 test('unanswered clinical question is not No',()=>{base();elements.dm.value='';submit();assert(has('dm is required'))});
-test('3-5 percent band remains guideline threshold',()=>{const v=UI.interpretation({ascvd10:3.4});assert(v.band.cls==='borderline');assert(!v.band.label.includes('คาบเส้น'))});
+test('3-5 percent band remains guideline threshold',()=>{const v=UI.interpretation({ascvd10:3.4});assert.equal(v.band.cls,'borderline');assert(!v.band.label.includes('คาบเส้น'))});
 test('risk meaning gives event and non-event frequencies',()=>{const s=UI.peopleMeaning(3.4,'โรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง',10);assert(s.includes('ประมาณ 3–4 คน'));assert(s.includes('อีกประมาณ 96–97 คน'));assert(s.includes('ภายใน 10 ปีข้างหน้า'))});
 test('personal advice prioritizes actionable factors',()=>{const a=UI.personalAdvice({smoking:1,sbp:145,dm:1,egfr:55},170,28);assert.equal(a[0].title,'การสูบบุหรี่');assert.equal(a[1].title,'ความดันโลหิต');assert.equal(a[2].title,'เบาหวาน')});
 const audit=fs.readFileSync('js/clinical-content.js','utf8');
