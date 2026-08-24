@@ -2,7 +2,7 @@ name: Deploy HeartCheck Wise to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "prevent-v2-working-prototype"]
   workflow_dispatch:
 
 permissions:
@@ -21,18 +21,36 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout production main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site
+
+      - name: Checkout PREVENT v2.3 UAT branch
+        uses: actions/checkout@v4
+        with:
+          ref: prevent-v2-working-prototype
+          path: uat-source
+
+      - name: Build production root plus isolated UAT preview
+        run: |
+          mkdir -p site/uat/prevent-v2.3
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            uat-source/ site/uat/prevent-v2.3/
+          touch site/.nojekyll
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
 
-      - name: Upload static site
+      - name: Upload combined static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
