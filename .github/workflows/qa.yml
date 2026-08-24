@@ -27,13 +27,13 @@ jobs:
           node --check tests/prevent-live-aha-parity.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
-      - name: PREVENT v2.1 numerical validation
+      - name: PREVENT v2.1 deterministic reference validation
         run: node tests/prevent-validation.js
-      - name: PREVENT v2.2 extended clinical validation
+      - name: PREVENT v2.2 extended deterministic validation
         run: node tests/prevent-extended-validation.js
-      - name: PREVENT v2.3 live parity vs official AHA calculator
+      - name: PREVENT v2.3 optional live AHA verification
         run: node tests/prevent-live-aha-parity.js
-      - name: Upload live parity report
+      - name: Upload live AHA verification report
         if: always()
         uses: actions/upload-artifact@v4
         with:
