@@ -7,7 +7,7 @@ const context={console,Math,document,window:null};context.window=context;context
 const UI=context.HeartCheckWiseUI;let passed=0;
 function test(name,fn){try{clear();fn();passed++;console.log(`PASS ${name}`)}catch(e){console.error(`FAIL ${name}: ${e.message}`);process.exitCode=1}}
 function clear(){Object.values(elements).forEach(e=>{e.value='';e.innerHTML='';e.hidden=e.id==='result'});redflags.forEach(x=>x.checked=false)}
-function base(){Object.assign(elements.age,{value:'55'});elements.sex.value='0';elements.sbp.value='130';elements.egfr.value='90';elements.dm.value='0';elements.smoking.value='0';elements.bptreat.value='0';elements.redflagNone.value='1';elements.ascvdHistory.value='0'}
+function base(){elements.age.value='55';elements.sex.value='0';elements.sbp.value='130';elements.egfr.value='90';elements.dm.value='0';elements.smoking.value='0';elements.bptreat.value='0';elements.redflagNone.value='1';elements.ascvdHistory.value='0'}
 function full(){base();elements.tc.value='200';elements.hdl.value='50';elements.statin.value='0';elements.heightCm.value='170';elements.weightKg.value='70'}
 function submit(){UI.submit({preventDefault(){}})}
 function has(s){return elements.result.innerHTML.includes(s)||elements.errors.innerHTML.includes(s)}
@@ -29,7 +29,13 @@ test('BMI lower boundary suppresses HF only',()=>{full();elements.heightCm.value
 test('BMI supported boundary produces HF',()=>{full();elements.heightCm.value='200';elements.weightKg.value='74';submit();assert(!has('ภาวะหัวใจล้มเหลว 10 ปี (HF)</span><strong>—'))});
 test('reset clears outputs',()=>{full();submit();UI.reset();assert(elements.result.hidden);assert.equal(elements.result.innerHTML,'');assert.equal(elements.age.value,'')});
 test('unanswered clinical question is not No',()=>{base();elements.dm.value='';submit();assert(has('dm is required'))});
-test('3-5 percent band uses public-friendly label',()=>{const v=UI.interpretation({ascvd10:3.4});assert.equal(v.band.label,'ความเสี่ยงค่อนข้างต่ำ');assert(!v.band.label.includes('คาบเส้น'))});
+test('3-5 percent band remains guideline threshold',()=>{const v=UI.interpretation({ascvd10:3.4});assert(v.band.cls==='borderline');assert(!v.band.label.includes('คาบเส้น'))});
 test('risk meaning gives event and non-event frequencies',()=>{const s=UI.peopleMeaning(3.4,'โรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง',10);assert(s.includes('ประมาณ 3–4 คน'));assert(s.includes('อีกประมาณ 96–97 คน'));assert(s.includes('ภายใน 10 ปีข้างหน้า'))});
-test('personal advice prioritizes actionable factors',()=>{const a=UI.personalAdvice({smoking:1,sbp:145,dm:1,egfr:55},170,28);assert(a[0].includes('หยุดสูบบุหรี่'));assert(a[1].includes('ความดันโลหิตของคุณสูงกว่าระดับที่เหมาะสม'));assert(a[2].includes('เบาหวาน'))});
-console.log(`\nUI functional tests: ${passed}/21 passed, ${21-passed} failed`);if(process.exitCode)process.exit(process.exitCode);
+test('personal advice prioritizes actionable factors',()=>{const a=UI.personalAdvice({smoking:1,sbp:145,dm:1,egfr:55},170,28);assert.equal(a[0].title,'การสูบบุหรี่');assert.equal(a[1].title,'ความดันโลหิต');assert.equal(a[2].title,'เบาหวาน')});
+const audit=fs.readFileSync('js/clinical-content.js','utf8');
+test('clinical audit public borderline wording',()=>assert(audit.includes('ความเสี่ยงเพิ่มขึ้นเล็กน้อย')));
+test('clinical audit preserves severe BP symptom distinction',()=>{assert(audit.includes('180/120'));assert(audit.includes('หากมีเจ็บหน้าอก'));assert(audit.includes('ไปฉุกเฉินทันที'))});
+test('clinical audit protects LDL 190 from low-risk reassurance',()=>assert(audit.includes('LDL-C ≥190 mg/dL')));
+test('clinical audit adds diabetes context',()=>assert(audit.includes('เบาหวานอายุ 40–75 ปี')));
+test('clinical audit adds CKD context',()=>assert(audit.includes('โรคไตเรื้อรัง')));
+console.log(`\nUI/clinical regression tests: ${passed}/26 passed, ${26-passed} failed`);if(process.exitCode)process.exit(process.exitCode);
