@@ -15,6 +15,13 @@ const assert = require('assert');
 // External fixture source (pinned by blob SHA in validation report):
 // https://github.com/kingrc15/pyprevent/blob/main/tests/fixtures/r_cases.csv
 // https://github.com/kingrc15/pyprevent/blob/main/tests/fixtures/r_reference.csv
+//
+// IMPORTANT: HeartCheck Wise intentionally rejects incomplete lipid pairs at the
+// application/engine boundary. The upstream HF-only fixture contains TC with HDL
+// and statin missing. Because the HF base equation does not use TC/HDL/statin,
+// that vector is normalized to tc=null, hdl=null, statin=null for HF-only parity.
+// This preserves the stricter HeartCheck Wise validation policy while testing the
+// same HF numerical oracle. Incomplete-pair rejection remains covered elsewhere.
 
 const code = fs.readFileSync('js/prevent-base.js', 'utf8');
 const context = { console, Math };
@@ -49,8 +56,8 @@ const cases = [
     expected: {cvd10:2.07907934287527,ascvd10:1.30624111041156,hf10:null,cvd30:13.9356008230627,ascvd30:7.98817492476527,hf30:null}
   },
   {
-    id: 'vignette_sdi_male_58_hdl_missing_base_model',
-    input: {sex:0,age:58,tc:267,hdl:null,sbp:150,dm:0,smoking:0,bmi:35,egfr:45,bptreat:1,statin:null},
+    id: 'vignette_sdi_male_58_hf_only_normalized',
+    input: {sex:0,age:58,tc:null,hdl:null,sbp:150,dm:0,smoking:0,bmi:35,egfr:45,bptreat:1,statin:null},
     expected: {cvd10:null,ascvd10:null,hf10:11.0185644608283,cvd30:null,ascvd30:null,hf30:34.917641070667}
   },
   {
