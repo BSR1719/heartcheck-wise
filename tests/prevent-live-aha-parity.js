@@ -3,7 +3,7 @@ const vm = require('vm');
 const path = require('path');
 
 const AHA_API = 'https://professional.heart.org/aha-service/PHDSearch/PreventCalculate';
-const TOL = 0.051; // AHA API/UI is rounded to 0.1 percentage point
+const TOL = 0.051;
 
 const source = fs.readFileSync('js/prevent-base.js', 'utf8');
 const ctx = { console, Math };
@@ -67,6 +67,11 @@ function check(label, ours, official, failures){
   return delta;
 }
 
+function writeReport(report){
+  fs.mkdirSync('validation',{recursive:true});
+  fs.writeFileSync(path.join('validation','prevent-live-aha-parity-report.json'),JSON.stringify(report,null,2));
+}
+
 (async()=>{
   const report = {endpoint:AHA_API,tolerance_pp:TOL,generated_at:new Date().toISOString(),cases:[],summary:{}};
   const failures = [];
@@ -77,12 +82,27 @@ function check(label, ours, official, failures){
     const local = PREVENT.baseRisk(c);
     if(!local.ok) throw new Error(`${c.id}: local engine rejected valid case: ${local.errors.join('; ')}`);
 
-    const res = await fetch(AHA_API, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json','User-Agent':'heartcheck-wise-live-parity/1.0'},
-      body:JSON.stringify(payload(c))
-    });
-    if(!res.ok) throw new Error(`${c.id}: AHA HTTP ${res.status}`);
+    let res;
+    try {
+      res = await fetch(AHA_API, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json','User-Agent':'heartcheck-wise-live-parity/1.0'},
+        body:JSON.stringify(payload(c))
+      });
+    } catch (err) {
+      report.summary = {status:'UNAVAILABLE',reason:`network error: ${err.message}`,cases_attempted:report.cases.length,comparisons};
+      writeReport(report);
+      console.warn(`Live AHA parity unavailable: ${report.summary.reason}`);
+      process.exit(0);
+    }
+
+    if(!res.ok){
+      report.summary = {status:'UNAVAILABLE',reason:`AHA HTTP ${res.status}`,cases_attempted:report.cases.length,comparisons};
+      writeReport(report);
+      console.warn(`Live AHA parity unavailable: ${report.summary.reason}. Deterministic reference tests remain authoritative for CI.`);
+      process.exit(0);
+    }
+
     const body = await res.json();
     if(!body.success) throw new Error(`${c.id}: AHA API returned unsuccessful response`);
     if(body.modelName !== 'Base Model') throw new Error(`${c.id}: expected Base Model, got ${body.modelName}`);
@@ -108,9 +128,7 @@ function check(label, ours, official, failures){
   }
 
   report.summary = {cases:cases.length,comparisons,max_delta_pp:maxDelta,failures:failures.length,status:failures.length?'FAIL':'PASS'};
-  fs.mkdirSync('validation',{recursive:true});
-  fs.writeFileSync(path.join('validation','prevent-live-aha-parity-report.json'),JSON.stringify(report,null,2));
-
+  writeReport(report);
   console.log(`\nLive AHA parity: ${report.summary.status} | ${cases.length} cases | ${comparisons} comparisons | max delta ${maxDelta.toFixed(4)} pp`);
   if(failures.length){
     console.error('\nFailures:'); failures.forEach(x=>console.error('- '+x)); process.exit(1);
