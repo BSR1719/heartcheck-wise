@@ -24,12 +24,15 @@ jobs:
           node --check js/prevent-base.js
           node --check tests/prevent-validation.js
           node --check tests/prevent-extended-validation.js
+          node --check tests/prevent-independent-validation.js
           node --check tests/prevent-live-aha-parity.js
           node --check tests/ui-functional-tests.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
       - name: PREVENT v2.1 deterministic reference validation
         run: node tests/prevent-validation.js
+      - name: PREVENT independent numerical cross-validation
+        run: node tests/prevent-independent-validation.js
       - name: PREVENT v2.2 extended deterministic validation
         run: node tests/prevent-extended-validation.js
       - name: Current UI functional tests
