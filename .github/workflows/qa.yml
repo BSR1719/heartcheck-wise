@@ -23,6 +23,7 @@ jobs:
           node --check js/clinical-rules.js
           node --check js/prevent-base.js
           node --check js/recommendation-engine.js
+          node --check js/pdf-export.js
           node --check tests/prevent-validation.js
           node --check tests/prevent-extended-validation.js
           node --check tests/prevent-independent-validation.js
@@ -30,6 +31,7 @@ jobs:
           node --check tests/ui-functional-tests.js
           node --check tests/recommendation-engine-tests.js
           node --check tests/recommendation-ui-path-tests.js
+          node --check tests/pdf-export-tests.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
       - name: PREVENT v2.1 deterministic reference validation
@@ -44,6 +46,8 @@ jobs:
         run: node tests/recommendation-engine-tests.js
       - name: Recommendation CTA integration path
         run: node tests/recommendation-ui-path-tests.js
+      - name: PDF export regression tests
+        run: node tests/pdf-export-tests.js
       - name: PREVENT v2.3 optional live AHA verification
         id: live_aha
         timeout-minutes: 3
