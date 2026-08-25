@@ -40,6 +40,19 @@ test('one-page report includes key consumer sections',()=>{
   assert(pdf.includes('เรื่องที่อาจคุยกับแพทย์เพิ่มเติม'));
 });
 
+test('risk numbers are translated into people-per-100 explanations',()=>{
+  assert(pdf.includes('ตัวเลขนี้หมายถึงอะไร?'));
+  assert(pdf.includes('ถ้ามีคน 100 คนที่มีอายุและข้อมูลสุขภาพใกล้เคียงกับคุณ'));
+  assert(pdf.includes('คนอาจเกิดโรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง'));
+  assert(pdf.includes('คนจะไม่เกิดเหตุการณ์ดังกล่าวในช่วงเวลานี้'));
+});
+
+test('30-year explanation prevents common misinterpretation',()=>{
+  assert(pdf.includes('ตัวเลข 30 ปีมักสูงกว่า 10 ปีเพราะเป็นช่วงเวลาที่ยาวกว่า'));
+  assert(pdf.includes('ไม่ได้หมายความว่าความเสี่ยงเพิ่มขึ้นทันทีในวันนี้'));
+  assert(pdf.includes('ไม่ใช่คำทำนายว่าจะเกิดกับคุณแน่นอน'));
+});
+
 test('iPhone path shares a real PDF File',()=>{
   assert(pdf.includes("new File([blob],name,{type:'application/pdf'})"));
   assert(pdf.includes('navigator.canShare({files:[file]})'));
