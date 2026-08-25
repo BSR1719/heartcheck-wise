@@ -7,4 +7,6 @@ test('PDF export exposes a user-visible save action',()=>{assert(pdf.includes('�
 test('PDF export expands personalized recommendations before printing',()=>{assert(pdf.includes('planButton.click()'));assert(pdf.includes('d.open=true'))});
 test('PDF print mode isolates assessment result and uses A4',()=>{assert(pdf.includes('@page{size:A4'));assert(pdf.includes('printing-result-pdf'));assert(pdf.includes('#result{display:block!important'))});
 test('PDF export states local-device privacy behavior',()=>{assert(pdf.includes('ไม่ส่งข้อมูลส่วนบุคคลกลับมายังระบบ'))});
+test('mobile PDF export keeps print inside click gesture',()=>{assert(!pdf.includes('setTimeout(()=>window.print()'),'mobile WebKit may block delayed print');assert(pdf.includes('window.print();'))});
+test('mobile PDF export provides in-app browser fallback guidance',()=>{assert(pdf.includes('isLikelyInAppBrowser'));assert(pdf.includes('Safari หรือ Chrome'));assert(pdf.includes('Save to Files'))});
 if(process.exitCode)process.exit(process.exitCode);console.log('\nPDF export regression tests: PASS');
