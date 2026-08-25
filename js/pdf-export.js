@@ -6,6 +6,7 @@ const CDN={
   html2canvas:'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
   jspdf:'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js'
 };
+const LOGO='https://raw.githubusercontent.com/BSR1719/heartcheck-wise/main/BSR%20landscape%20logo.png';
 
 function loadScript(src,test){
   if(test())return Promise.resolve();
@@ -17,166 +18,96 @@ function loadScript(src,test){
     document.head.appendChild(s);
   });
 }
-
 async function ensurePdfLibraries(){
   await loadScript(CDN.html2canvas,()=>typeof window.html2canvas==='function');
   await loadScript(CDN.jspdf,()=>!!(window.jspdf&&window.jspdf.jsPDF));
 }
 
-function ensurePrintHeading(container){
-  let heading=container.querySelector('.pdf-report-heading');
-  if(heading)return heading;
-  heading=document.createElement('section');
-  heading.className='pdf-report-heading';
-  heading.innerHTML='<h1>ผลการประเมินความเสี่ยงโรคหัวใจและหลอดเลือด</h1><p>HeartCheck Wise · Bangkok Hospital Surat</p><p class="pdf-generated-at"></p>';
-  container.prepend(heading);
-  return heading;
-}
-
-function setGeneratedAt(container){
-  const heading=ensurePrintHeading(container);
-  const when=heading.querySelector('.pdf-generated-at');
-  if(!when)return;
-  try{when.textContent='วันที่บันทึก: '+new Intl.DateTimeFormat('th-TH',{dateStyle:'long',timeStyle:'short'}).format(new Date());}
-  catch(_){when.textContent='วันที่บันทึก: '+new Date().toLocaleString();}
-}
-
 function ensurePdfButton(){
   const container=result();
   if(!container||container.hidden||!container.innerHTML||container.querySelector('.pdf-export-wrap'))return;
-  const wrap=document.createElement('div');
-  wrap.className='pdf-export-wrap';
-  wrap.innerHTML='<button type="button" class="pdf-export-button" aria-label="บันทึกผลการประเมินเป็น PDF">บันทึกผลเป็น PDF</button><p>สร้างไฟล์ PDF บนอุปกรณ์ของคุณ โดยไม่ส่งข้อมูลส่วนบุคคลกลับมายังระบบ</p><div class="pdf-status" aria-live="polite"></div>';
-  container.appendChild(wrap);
-  wrap.querySelector('.pdf-export-button').addEventListener('click',downloadResultPdf);
+  const wrap=document.createElement('div');wrap.className='pdf-export-wrap';
+  wrap.innerHTML='<button type="button" class="pdf-export-button" aria-label="บันทึกสรุปผลการประเมินเป็น PDF">บันทึกสรุป 1 หน้า PDF</button><p>สรุปความเสี่ยง สิ่งที่ควรใส่ใจก่อน และแผน 90 วัน ลงใน A4 หน้าเดียว</p><div class="pdf-status" aria-live="polite"></div>';
+  container.appendChild(wrap);wrap.querySelector('.pdf-export-button').addEventListener('click',downloadResultPdf);
 }
-
 function expandForPdf(container){
-  const planButton=container.querySelector('.plan-button');
-  const panel=container.querySelector('.personal-plan');
-  if(planButton&&panel&&(!panel.dataset.rendered||panel.classList.contains('plan-hidden'))){planButton.click();}
-  container.querySelectorAll('details').forEach(d=>{d.open=true;});
+  const planButton=container.querySelector('.plan-button'),panel=container.querySelector('.personal-plan');
+  if(planButton&&panel&&(!panel.dataset.rendered||panel.classList.contains('plan-hidden')))planButton.click();
 }
-
-function setStatus(message,isError=false){
-  const el=q('.pdf-status');if(!el)return;
-  el.textContent=message||'';el.classList.toggle('error',!!isError);
+function setStatus(message,isError=false){const el=q('.pdf-status');if(!el)return;el.textContent=message||'';el.classList.toggle('error',!!isError)}
+function setBusy(busy){const btn=q('.pdf-export-button');if(!btn)return;btn.disabled=busy;btn.textContent=busy?'กำลังสร้าง PDF…':'บันทึกสรุป 1 หน้า PDF'}
+function clean(t){return String(t||'').replace(/\s+/g,' ').trim()}
+function text(el,sel){const n=el&&el.querySelector(sel);return clean(n&&n.textContent)}
+function metricValue(container,pattern){
+  const metrics=[...container.querySelectorAll('.metric')];
+  for(const m of metrics){if(pattern.test(clean(m.textContent))){const s=m.querySelector('strong');if(s)return clean(s.textContent)}}
+  return '';
 }
-
-function setBusy(busy){
-  const btn=q('.pdf-export-button');if(!btn)return;
-  btn.disabled=busy;btn.textContent=busy?'กำลังสร้าง PDF…':'บันทึกผลเป็น PDF';
+function reportData(container){
+  expandForPdf(container);
+  const risk=text(container,'.risk-number')||'—';
+  const band=text(container,'.risk-band')||'';
+  const ascvd30=metricValue(container,/ASCVD.*30|30.*ASCVD/i);
+  const priorities=[...container.querySelectorAll('.plan-card.priority')].slice(0,3).map(c=>({
+    title:text(c,'h5'),
+    why:text(c,'.plan-why'),
+    action:text(c,'li')
+  })).filter(x=>x.title);
+  const timeline=[...container.querySelectorAll('.plan-90 .plan-time')].slice(0,3).map(c=>({when:text(c,'strong'),detail:clean(c.textContent).replace(text(c,'strong'),'').trim()}));
+  const further=[...container.querySelectorAll('.plan-card.further-assessment')].slice(0,1).map(c=>text(c,'h5')).filter(Boolean);
+  const fallbackPriorities=[
+    {title:'ดูแลความดัน ไขมัน น้ำตาล และน้ำหนัก',why:'ติดตามค่าที่เกี่ยวข้องตามบริบทสุขภาพของคุณ',action:'เลือกเริ่มจาก 1 เรื่องที่ทำได้จริง'},
+  ];
+  return{risk,band,ascvd30,priorities:priorities.length?priorities:fallbackPriorities,timeline,further};
 }
-
-function captureTargets(container){
-  const targets=[];
-  const resultShell=container.querySelector('.result-shell');
-  if(resultShell){[...resultShell.children].forEach(n=>targets.push(n));}
-  const launch=container.querySelector('.personal-plan-launch');
-  const plan=launch&&launch.querySelector('.personal-plan');
-  if(plan){[...plan.children].forEach(n=>targets.push(n));}
-  if(!targets.length){[...container.children].filter(n=>!n.classList.contains('pdf-export-wrap')).forEach(n=>targets.push(n));}
-  return targets.filter(n=>{
-    const cs=getComputedStyle(n);return cs.display!=='none'&&cs.visibility!=='hidden'&&n.offsetHeight>0;
-  });
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function nowThai(){try{return new Intl.DateTimeFormat('th-TH',{dateStyle:'long'}).format(new Date())}catch(_){return new Date().toLocaleDateString()}}
+function priorityHtml(items){return items.slice(0,3).map((x,i)=>`<div class="r-priority"><span class="r-num">${i+1}</span><div><b>${esc(x.title)}</b>${x.why?`<p>${esc(x.why)}</p>`:''}${x.action?`<small>เริ่มได้เลย: ${esc(x.action)}</small>`:''}</div></div>`).join('')}
+function timelineHtml(items){const fallback=[{when:'วันนี้',detail:'เลือก 1 เรื่องสำคัญและเริ่มลงมือ'},{when:'2–4 สัปดาห์',detail:'ติดตามค่าหรือพฤติกรรมที่เกี่ยวข้อง'},{when:'ประมาณ 3 เดือน',detail:'ทบทวนความคืบหน้าและวางแผนต่อ'}];return (items.length?items:fallback).slice(0,3).map(x=>`<div class="r-time"><b>${esc(x.when)}</b><span>${esc(x.detail)}</span></div>`).join('')}
+function buildOnePageReport(data){
+  const report=document.createElement('section');report.className='pdf-one-page-report';
+  report.innerHTML=`
+    <header class="r-head"><img src="${LOGO}" crossorigin="anonymous" alt="Bangkok Hospital Surat"><div class="r-brand"><b>HeartCheck Wise</b><span>ผลประเมินเพื่อการป้องกันโรคหัวใจและหลอดเลือด</span></div><div class="r-date">${esc(nowThai())}</div></header>
+    <section class="r-risk"><div><span>ความเสี่ยงโรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมองใน 10 ปี</span><strong>${esc(data.risk)}</strong><b>${esc(data.band)}</b><small>เป็นการประมาณความเสี่ยง ไม่ใช่การวินิจฉัยโรค</small></div><div class="r-risk-side"><span>มองระยะยาว</span><strong>${esc(data.ascvd30||'—')}</strong><small>ASCVD 30 ปี</small></div></section>
+    <section class="r-grid"><div class="r-card"><h2>สิ่งที่ควรใส่ใจก่อน</h2>${priorityHtml(data.priorities)}</div><div class="r-card r-plan"><h2>แผนของคุณใน 90 วัน</h2>${timelineHtml(data.timeline)}</div></section>
+    <section class="r-actions"><h2>พื้นฐานที่ช่วยลดความเสี่ยงระยะยาว</h2><div class="r-action-grid"><div><b>อาหาร</b><span>เพิ่มผัก ผลไม้ ธัญพืชไม่ขัดสี ลดอาหารแปรรูปและเค็ม</span></div><div><b>การออกกำลังกาย</b><span>ค่อย ๆ เพิ่มกิจกรรมให้สม่ำเสมอ ตามความพร้อมของร่างกาย</span></div><div><b>น้ำหนัก</b><span>ติดตามแนวโน้มและตั้งเป้าหมายที่ทำได้จริง</span></div><div><b>การนอน</b><span>นอนให้พอและสม่ำเสมอ หากกรนมากหรือสงสัยหยุดหายใจควรปรึกษาแพทย์</span></div></div></section>
+    ${data.further.length?`<section class="r-discuss"><b>เรื่องที่อาจคุยกับแพทย์เพิ่มเติม</b><span>${esc(data.further[0])}</span></section>`:''}
+    <footer class="r-foot"><div><b>อ้างอิงหลัก:</b> AHA PREVENT™ Equations · ACC/AHA prevention guidance · AHA Life’s Essential 8</div><div>คำแนะนำนี้ช่วยเพิ่มความเข้าใจและเตรียมการดูแลสุขภาพ ไม่ใช่คำสั่งเริ่ม/หยุด/ปรับยา และไม่แทนการประเมินโดยแพทย์</div></footer>`;
+  document.body.appendChild(report);return report;
 }
-
-async function nodeCanvas(node){
-  return window.html2canvas(node,{scale:1.5,useCORS:true,backgroundColor:'#ffffff',logging:false,scrollX:0,scrollY:-window.scrollY});
-}
-
-function addCanvasToPdf(doc,canvas,state){
-  const pageW=210,pageH=297,margin=10,usableW=pageW-margin*2,usableH=pageH-margin*2;
-  const imgW=usableW;
-  const pxPerMm=canvas.width/imgW;
-  const fullHmm=canvas.height/pxPerMm;
-  let sourceY=0;
-  while(sourceY<canvas.height){
-    let availableMm=usableH-state.y;
-    if(availableMm<25){doc.addPage();state.y=margin;availableMm=usableH;}
-    const remainingMm=(canvas.height-sourceY)/pxPerMm;
-    const chunkMm=Math.min(remainingMm,availableMm);
-    const chunkPx=Math.max(1,Math.floor(chunkMm*pxPerMm));
-    const crop=document.createElement('canvas');crop.width=canvas.width;crop.height=chunkPx;
-    const ctx=crop.getContext('2d');ctx.drawImage(canvas,0,sourceY,canvas.width,chunkPx,0,0,canvas.width,chunkPx);
-    const data=crop.toDataURL('image/jpeg',0.92);
-    doc.addImage(data,'JPEG',margin,state.y,imgW,chunkPx/pxPerMm,undefined,'FAST');
-    state.y+=chunkPx/pxPerMm+3;sourceY+=chunkPx;
-    if(sourceY<canvas.height){doc.addPage();state.y=margin;}
-  }
-}
-
+async function waitForImages(node){await Promise.all([...node.querySelectorAll('img')].map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=r}))) }
 async function buildPdfBlob(){
-  const container=result();
-  if(!container||container.hidden)throw new Error('ยังไม่มีผลการประเมิน');
-  expandForPdf(container);setGeneratedAt(container);
+  const container=result();if(!container||container.hidden)throw new Error('ยังไม่มีผลการประเมิน');
   await ensurePdfLibraries();
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
-  const state={y:10};
-
-  // Compact report heading rendered as HTML image so Thai text remains correct without embedding fonts.
-  const reportHeader=document.createElement('div');
-  reportHeader.className='pdf-capture-header';
-  reportHeader.innerHTML='<div class="pdf-capture-brand">Bangkok Hospital Surat · HeartCheck Wise</div><h1>ผลการประเมินความเสี่ยงโรคหัวใจและหลอดเลือด</h1><p>'+((container.querySelector('.pdf-generated-at')||{}).textContent||'')+'</p>';
-  document.body.appendChild(reportHeader);
-  try{addCanvasToPdf(doc,await nodeCanvas(reportHeader),state);}finally{reportHeader.remove();}
-
-  const targets=captureTargets(container);
-  for(const target of targets){
-    if(target.classList.contains('pdf-export-wrap'))continue;
-    const canvas=await nodeCanvas(target);
-    addCanvasToPdf(doc,canvas,state);
-  }
-  return doc.output('blob');
-}
-
-function pdfFilename(){
-  const d=new Date(),pad=n=>String(n).padStart(2,'0');
-  return `HeartCheck-Wise-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.pdf`;
-}
-
-async function deliverPdf(blob){
-  const name=pdfFilename();
-  const file=new File([blob],name,{type:'application/pdf'});
-  if(navigator.share&&navigator.canShare){
-    try{
-      if(navigator.canShare({files:[file]})){
-        await navigator.share({files:[file],title:'ผลการประเมิน HeartCheck Wise'});
-        return 'shared';
-      }
-    }catch(e){if(e&&e.name==='AbortError')return 'cancelled';}
-  }
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),30000);
-  return 'downloaded';
-}
-
-async function downloadResultPdf(){
-  setBusy(true);setStatus('กำลังจัดหน้าและสร้างไฟล์ PDF…');
+  const report=buildOnePageReport(reportData(container));
   try{
-    const blob=await buildPdfBlob();
-    const mode=await deliverPdf(blob);
-    if(mode==='shared')setStatus('สร้าง PDF แล้ว เลือก “Save to Files” หรือแอปที่ต้องการจาก Share Sheet ได้เลย');
-    else if(mode==='cancelled')setStatus('สร้าง PDF แล้ว แต่ยังไม่ได้เลือกที่บันทึก');
-    else setStatus('สร้าง PDF แล้ว หากไม่เห็นไฟล์ให้ตรวจใน Downloads/Files');
-  }catch(e){
-    console.error(e);setStatus('ยังสร้าง PDF ไม่สำเร็จ กรุณาเปิดหน้านี้ใน Safari หรือ Chrome แล้วลองอีกครั้ง',true);
-  }finally{setBusy(false);}
+    await waitForImages(report);
+    const canvas=await window.html2canvas(report,{scale:1.6,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+    const img=canvas.toDataURL('image/jpeg',0.94),pageW=210,pageH=297,margin=5,maxW=pageW-margin*2,maxH=pageH-margin*2;
+    const ratio=Math.min(maxW/canvas.width,maxH/canvas.height),w=canvas.width*ratio,h=canvas.height*ratio;
+    doc.addImage(img,'JPEG',(pageW-w)/2,(pageH-h)/2,w,h,undefined,'FAST');
+    return doc.output('blob');
+  }finally{report.remove()}
 }
-
+function pdfFilename(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return `HeartCheck-Wise-OnePage-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.pdf`}
+async function deliverPdf(blob){
+  const name=pdfFilename(),file=new File([blob],name,{type:'application/pdf'});
+  if(navigator.share&&navigator.canShare){try{if(navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'สรุปผล HeartCheck Wise'});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancelled'}}
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);return 'downloaded';
+}
+async function downloadResultPdf(){
+  setBusy(true);setStatus('กำลังสร้างสรุป 1 หน้า…');
+  try{const blob=await buildPdfBlob(),mode=await deliverPdf(blob);if(mode==='shared')setStatus('สร้างสรุป 1 หน้าแล้ว เลือก Save to Files หรือแอปที่ต้องการได้เลย');else if(mode==='cancelled')setStatus('สร้าง PDF แล้ว แต่ยังไม่ได้เลือกที่บันทึก');else setStatus('สร้าง PDF แล้ว หากไม่เห็นไฟล์ให้ตรวจใน Downloads/Files')}
+  catch(e){console.error(e);setStatus('ยังสร้าง PDF ไม่สำเร็จ กรุณาเปิดใน Safari หรือ Chrome แล้วลองอีกครั้ง',true)}finally{setBusy(false)}
+}
 function addStyles(){
-  if(q('#pdf-export-styles'))return;
-  const s=document.createElement('style');s.id='pdf-export-styles';s.textContent=`
-.pdf-export-wrap{margin-top:20px;padding:18px;border-radius:18px;background:#f7fbff;border:1px solid #d6e7f3;text-align:center}.pdf-export-button{width:100%;min-height:56px;border:0;border-radius:14px;background:#0a4f91;color:#fff;font:inherit;font-weight:900;font-size:17px;cursor:pointer}.pdf-export-button:disabled{opacity:.65;cursor:wait}.pdf-export-wrap>p{margin:9px 0 0;color:#60778d;font-size:12px}.pdf-status{margin-top:10px;color:#17643f;font-size:13px;font-weight:700}.pdf-status.error{color:#b42318}.pdf-report-heading{display:none}.pdf-capture-header{position:fixed;left:-10000px;top:0;width:760px;padding:28px 34px;background:#fff;color:#102f52;font-family:Inter,"Noto Sans Thai",Tahoma,sans-serif}.pdf-capture-header h1{font-size:30px;line-height:1.25;margin:5px 0 10px}.pdf-capture-header p{margin:0;color:#60778d;font-size:14px}.pdf-capture-brand{font-weight:900;color:#0a4f91;font-size:18px}
+  if(q('#pdf-export-styles'))return;const s=document.createElement('style');s.id='pdf-export-styles';s.textContent=`
+.pdf-export-wrap{margin-top:20px;padding:18px;border-radius:18px;background:#f7fbff;border:1px solid #d6e7f3;text-align:center}.pdf-export-button{width:100%;min-height:56px;border:0;border-radius:14px;background:#0a4f91;color:#fff;font:inherit;font-weight:900;font-size:17px;cursor:pointer}.pdf-export-button:disabled{opacity:.65;cursor:wait}.pdf-export-wrap>p{margin:9px 0 0;color:#60778d;font-size:12px}.pdf-status{margin-top:10px;color:#17643f;font-size:13px;font-weight:700}.pdf-status.error{color:#b42318}
+.pdf-one-page-report{position:fixed;left:-10000px;top:0;width:794px;height:1123px;overflow:hidden;padding:34px 38px;background:#fff;color:#12395f;font-family:Inter,"Noto Sans Thai",Tahoma,sans-serif;line-height:1.42}.r-head{height:82px;display:flex;align-items:center;border-bottom:2px solid #d7e4ed;padding-bottom:15px}.r-head img{width:190px;height:58px;object-fit:contain;object-position:left center}.r-brand{padding-left:20px;margin-left:18px;border-left:1px solid #cbdbe7;display:flex;flex-direction:column}.r-brand b{font-size:22px;color:#0d3155}.r-brand span{font-size:13px;color:#60778d}.r-date{margin-left:auto;font-size:12px;color:#60778d;align-self:flex-start;padding-top:7px}.r-risk{margin-top:18px;display:grid;grid-template-columns:1fr 180px;gap:16px;background:linear-gradient(135deg,#eef8ff,#eefbf7);border:1px solid #d1e7ef;border-radius:20px;padding:22px 24px}.r-risk>div:first-child{display:flex;flex-direction:column}.r-risk span{font-size:15px;color:#355a78}.r-risk strong{font-size:57px;line-height:1;color:#0d3155;margin:4px 0}.r-risk b{font-size:18px;color:#0d3155}.r-risk small{font-size:11px;color:#60778d;margin-top:5px}.r-risk-side{border-left:1px solid #cbdfe8;padding-left:18px;display:flex;flex-direction:column;justify-content:center}.r-risk-side strong{font-size:32px}.r-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:16px;margin-top:16px}.r-card{border:1px solid #d8e5ef;border-radius:17px;padding:17px 18px;background:#fff}.r-card h2,.r-actions h2{font-size:19px;margin:0 0 11px;color:#0d3155}.r-priority{display:grid;grid-template-columns:32px 1fr;gap:9px;padding:8px 0;border-top:1px solid #edf2f5}.r-priority:first-of-type{border-top:0}.r-num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#e7f3ff;color:#0969da;font-weight:900}.r-priority b{font-size:15px}.r-priority p{font-size:11px;color:#526b84;margin:2px 0}.r-priority small{display:block;font-size:10px;color:#176344}.r-plan{background:#f3fbf6;border-color:#cee7d8}.r-time{padding:10px 11px;background:#fff;border-radius:11px;margin:8px 0}.r-time b{display:block;color:#176344;font-size:13px}.r-time span{display:block;font-size:11px;color:#355a78;margin-top:2px}.r-actions{margin-top:16px;border-radius:17px;padding:16px 18px;background:#f7fbfd;border:1px solid #d8e8f2}.r-action-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.r-action-grid div{border-radius:11px;background:#fff;padding:9px 11px}.r-action-grid b{display:block;font-size:13px;color:#0969da}.r-action-grid span{display:block;font-size:10px;color:#526b84;margin-top:2px}.r-discuss{margin-top:12px;padding:12px 15px;border-left:4px solid #8b65d5;border-radius:10px;background:#fbf9ff}.r-discuss b{font-size:13px}.r-discuss span{font-size:11px;color:#526b84;margin-left:8px}.r-foot{position:absolute;left:38px;right:38px;bottom:28px;border-top:1px solid #d8e5ef;padding-top:9px;color:#6c8091;font-size:9px}.r-foot div+div{margin-top:3px}
 @media(max-width:520px){.pdf-export-button{min-height:62px;font-size:18px}.pdf-export-wrap{padding:15px}.pdf-status{font-size:14px}}
-`;
-  document.head.appendChild(s);
+`;document.head.appendChild(s)
 }
-
-addStyles();
-const target=result();
-if(target){const observer=new MutationObserver(()=>setTimeout(ensurePdfButton,0));observer.observe(target,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});setTimeout(ensurePdfButton,0);}
-window.HeartCheckPdfExport={ensurePdfButton,downloadResultPdf,buildPdfBlob,deliverPdf,expandForPdf,ensurePdfLibraries,captureTargets};
+addStyles();const target=result();if(target){const observer=new MutationObserver(()=>setTimeout(ensurePdfButton,0));observer.observe(target,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});setTimeout(ensurePdfButton,0)}
+window.HeartCheckPdfExport={ensurePdfButton,downloadResultPdf,buildPdfBlob,deliverPdf,expandForPdf,ensurePdfLibraries,reportData,buildOnePageReport};
 })();
