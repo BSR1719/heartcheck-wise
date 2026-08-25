@@ -53,6 +53,18 @@ test('30-year explanation prevents common misinterpretation',()=>{
   assert(pdf.includes('ไม่ใช่คำทำนายว่าจะเกิดกับคุณแน่นอน'));
 });
 
+test('single-priority layout adds action support instead of dead space',()=>{
+  assert(pdf.includes('function prioritySupportHtml'));
+  assert(pdf.includes('if(items.length!==1)return'));
+  assert(pdf.includes('ทำทีละเรื่องก็เพียงพอ'));
+  assert(pdf.includes('ทบทวนความคืบหน้าอีกครั้งในช่วง 2–4 สัปดาห์'));
+});
+
+test('footer readability is increased for print',()=>{
+  assert(pdf.includes('font-size:8.5px'));
+  assert(pdf.includes('line-height:1.35'));
+});
+
 test('iPhone path shares a real PDF File',()=>{
   assert(pdf.includes("new File([blob],name,{type:'application/pdf'})"));
   assert(pdf.includes('navigator.canShare({files:[file]})'));
