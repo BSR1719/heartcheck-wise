@@ -22,11 +22,13 @@ jobs:
           node --check js/app.js
           node --check js/clinical-rules.js
           node --check js/prevent-base.js
+          node --check js/recommendation-engine.js
           node --check tests/prevent-validation.js
           node --check tests/prevent-extended-validation.js
           node --check tests/prevent-independent-validation.js
           node --check tests/prevent-live-aha-parity.js
           node --check tests/ui-functional-tests.js
+          node --check tests/recommendation-engine-tests.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
       - name: PREVENT v2.1 deterministic reference validation
@@ -37,6 +39,8 @@ jobs:
         run: node tests/prevent-extended-validation.js
       - name: Current UI functional tests
         run: node tests/ui-functional-tests.js
+      - name: Personalized recommendation engine v1.1 deterministic tests
+        run: node tests/recommendation-engine-tests.js
       - name: PREVENT v2.3 optional live AHA verification
         id: live_aha
         timeout-minutes: 3
