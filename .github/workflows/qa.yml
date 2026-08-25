@@ -29,6 +29,7 @@ jobs:
           node --check tests/prevent-live-aha-parity.js
           node --check tests/ui-functional-tests.js
           node --check tests/recommendation-engine-tests.js
+          node --check tests/recommendation-ui-path-tests.js
       - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
       - name: PREVENT v2.1 deterministic reference validation
@@ -41,6 +42,8 @@ jobs:
         run: node tests/ui-functional-tests.js
       - name: Personalized recommendation engine v1.1 deterministic tests
         run: node tests/recommendation-engine-tests.js
+      - name: Recommendation CTA integration path
+        run: node tests/recommendation-ui-path-tests.js
       - name: PREVENT v2.3 optional live AHA verification
         id: live_aha
         timeout-minutes: 3
