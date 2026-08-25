@@ -13,6 +13,25 @@ function ensurePrintHeading(container){
   return heading;
 }
 
+function isLikelyInAppBrowser(){
+  const ua=navigator.userAgent||'';
+  return /(Line\/|FBAN|FBAV|Instagram|MicroMessenger|WebView|wv\))/i.test(ua);
+}
+
+function showMobileHelp(){
+  let box=q('#pdf-mobile-help');
+  if(!box){
+    box=document.createElement('div');
+    box.id='pdf-mobile-help';
+    box.className='pdf-mobile-help';
+    box.innerHTML='<strong>หากหน้าบันทึก PDF ไม่เปิด</strong><p>บางแอปเปิดเว็บผ่านเบราว์เซอร์ภายในซึ่งไม่รองรับการพิมพ์เป็น PDF ให้เปิดหน้านี้ใน Safari หรือ Chrome แล้วกด “บันทึกผลเป็น PDF” อีกครั้ง</p><p class="pdf-ios-tip"><strong>iPhone:</strong> ในหน้าพิมพ์ แตะภาพตัวอย่างค้าง/ขยายให้เต็มหน้า แล้วกด Share → Save to Files เพื่อเก็บเป็น PDF</p>';
+    const wrap=q('.pdf-export-wrap');
+    if(wrap)wrap.appendChild(box);
+  }
+  box.hidden=false;
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
 function ensurePdfButton(){
   const container=result();
   if(!container||container.hidden||!container.innerHTML||container.querySelector('.pdf-export-wrap'))return;
@@ -45,8 +64,18 @@ function printResultPdf(){
   document.body.classList.add('printing-result-pdf');
   const cleanup=()=>document.body.classList.remove('printing-result-pdf');
   window.addEventListener('afterprint',cleanup,{once:true});
-  setTimeout(()=>window.print(),50);
-  setTimeout(cleanup,2000);
+  try{
+    // Important for iOS/mobile WebKit: keep print() in the original user gesture.
+    window.print();
+    setTimeout(cleanup,2500);
+  }catch(_){
+    cleanup();
+    showMobileHelp();
+    return;
+  }
+  if(isLikelyInAppBrowser()){
+    setTimeout(()=>{if(document.visibilityState==='visible')showMobileHelp();},700);
+  }
 }
 
 function addStyles(){
@@ -54,8 +83,8 @@ function addStyles(){
   const s=document.createElement('style');
   s.id='pdf-export-styles';
   s.textContent=`
-.pdf-export-wrap{margin-top:20px;padding:18px;border-radius:18px;background:#f7fbff;border:1px solid #d6e7f3;text-align:center}.pdf-export-button{width:100%;min-height:56px;border:0;border-radius:14px;background:#0a4f91;color:#fff;font:inherit;font-weight:900;font-size:17px;cursor:pointer}.pdf-export-wrap p{margin:9px 0 0;color:#60778d;font-size:12px}.pdf-report-heading{display:none}
-@media(max-width:520px){.pdf-export-button{min-height:62px;font-size:18px}.pdf-export-wrap{padding:15px}}
+.pdf-export-wrap{margin-top:20px;padding:18px;border-radius:18px;background:#f7fbff;border:1px solid #d6e7f3;text-align:center}.pdf-export-button{width:100%;min-height:56px;border:0;border-radius:14px;background:#0a4f91;color:#fff;font:inherit;font-weight:900;font-size:17px;cursor:pointer}.pdf-export-wrap>p{margin:9px 0 0;color:#60778d;font-size:12px}.pdf-mobile-help{margin-top:14px;padding:14px 15px;border-radius:14px;background:#fff8e8;border:1px solid #ecd99d;text-align:left;color:#6e5210}.pdf-mobile-help strong{color:#5a4208}.pdf-mobile-help p{margin:6px 0 0;font-size:13px;line-height:1.55}.pdf-ios-tip{padding-top:4px}.pdf-report-heading{display:none}
+@media(max-width:520px){.pdf-export-button{min-height:62px;font-size:18px}.pdf-export-wrap{padding:15px}.pdf-mobile-help p{font-size:14px}}
 @media print{
  @page{size:A4;margin:14mm 12mm}
  html,body{background:#fff!important;color:#102f52!important;font-size:11pt!important}
@@ -90,5 +119,5 @@ if(target){
   observer.observe(target,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
   setTimeout(ensurePdfButton,0);
 }
-window.HeartCheckPdfExport={ensurePdfButton,printResultPdf,expandForPrint};
+window.HeartCheckPdfExport={ensurePdfButton,printResultPdf,expandForPrint,isLikelyInAppBrowser,showMobileHelp};
 })();
