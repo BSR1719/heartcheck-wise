@@ -9,6 +9,25 @@ test('index loads PDF export after clinical content',()=>{
   assert(clinical>=0);assert(exportPos>clinical,'pdf-export.js must load after clinical-content.js');
 });
 
+test('PDF runtime dependencies and logo are self-hosted',()=>{
+  assert(pdf.includes("vendor/html2canvas-1.4.1.min.js"));
+  assert(pdf.includes("vendor/jspdf-2.5.2.umd.min.js"));
+  assert(pdf.includes("BSR%20landscape%20logo.png"));
+  assert(!pdf.includes('cdn.jsdelivr.net'));
+  assert(!pdf.includes('raw.githubusercontent.com'));
+});
+
+test('page applies privacy-focused browser policy',()=>{
+  assert(index.includes('name="robots" content="noindex,nofollow,noarchive,nosnippet"'));
+  assert(index.includes('name="referrer" content="no-referrer"'));
+  assert(index.includes("connect-src 'none'"));
+  assert(index.includes("object-src 'none'"));
+  assert(index.includes("base-uri 'self'"));
+  assert(index.includes("form-action 'self'"));
+  assert(!index.includes('ข้อมูลของคุณปลอดภัย'));
+  assert(index.includes('ไม่มีช่องชื่อ HN โทรศัพท์ หรืออีเมล'));
+});
+
 test('PDF export exposes one-page save action',()=>{
   assert(pdf.includes('บันทึกสรุป 1 หน้า PDF'));
   assert(pdf.includes('downloadResultPdf'));

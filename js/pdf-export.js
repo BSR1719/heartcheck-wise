@@ -2,11 +2,11 @@
 'use strict';
 const q=s=>document.querySelector(s);
 const result=()=>q('#result');
-const CDN={
-  html2canvas:'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
-  jspdf:'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js'
+const PDF_LIBRARIES={
+  html2canvas:'vendor/html2canvas-1.4.1.min.js',
+  jspdf:'vendor/jspdf-2.5.2.umd.min.js'
 };
-const LOGO='https://raw.githubusercontent.com/BSR1719/heartcheck-wise/main/BSR%20landscape%20logo.png';
+const LOGO='BSR%20landscape%20logo.png';
 
 function loadScript(src,test){
   if(test())return Promise.resolve();
@@ -19,8 +19,8 @@ function loadScript(src,test){
   });
 }
 async function ensurePdfLibraries(){
-  await loadScript(CDN.html2canvas,()=>typeof window.html2canvas==='function');
-  await loadScript(CDN.jspdf,()=>!!(window.jspdf&&window.jspdf.jsPDF));
+  await loadScript(PDF_LIBRARIES.html2canvas,()=>typeof window.html2canvas==='function');
+  await loadScript(PDF_LIBRARIES.jspdf,()=>!!(window.jspdf&&window.jspdf.jsPDF));
 }
 
 function ensurePdfButton(){
