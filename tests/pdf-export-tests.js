@@ -31,6 +31,7 @@ test('page applies privacy-focused browser policy',()=>{
 test('PDF export exposes one-page save action',()=>{
   assert(pdf.includes('บันทึกสรุป 1 หน้า PDF'));
   assert(pdf.includes('downloadResultPdf'));
+  assert(pdf.includes("!container.querySelector('.result-shell')"),'PDF control must be blocked for emergency/exclusion results');
 });
 
 test('PDF export renders personalized plan before extracting report data',()=>{

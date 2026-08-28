@@ -25,7 +25,7 @@ async function ensurePdfLibraries(){
 
 function ensurePdfButton(){
   const container=result();
-  if(!container||container.hidden||!container.innerHTML||container.querySelector('.pdf-export-wrap'))return;
+  if(!container||container.hidden||!container.innerHTML||!container.querySelector('.result-shell')||container.querySelector('.pdf-export-wrap'))return;
   const wrap=document.createElement('div');wrap.className='pdf-export-wrap';
   wrap.innerHTML='<button type="button" class="pdf-export-button" aria-label="บันทึกสรุปผลการประเมินเป็น PDF">บันทึกสรุป 1 หน้า PDF</button><p>สรุปความเสี่ยง สิ่งที่ควรใส่ใจก่อน และแผน 90 วัน ลงใน A4 หน้าเดียว</p><div class="pdf-status" aria-live="polite"></div>';
   container.appendChild(wrap);wrap.querySelector('.pdf-export-button').addEventListener('click',downloadResultPdf);

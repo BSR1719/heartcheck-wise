@@ -43,9 +43,10 @@ class LaunchEl extends BasicEl{
   querySelector(sel){if(sel==='.personal-plan')return this.panel;if(sel==='.plan-button')return this.button;return null}
 }
 class ResultEl extends BasicEl{
-  constructor(){super();this.hidden=false;this.innerHTML='<div class="risk-number">4.3%</div>';this.launch=null;}
+  constructor(){super();this.hidden=false;this.innerHTML='<div class="risk-number">4.3%</div>';this.launch=null;this.hasResultShell=true;}
   querySelector(sel){
     if(sel==='.personal-plan-launch')return this.launch;
+    if(sel==='.result-shell')return this.hasResultShell?{}:null;
     if(sel==='.risk-number')return {textContent:'4.3%'};
     return null;
   }
@@ -100,6 +101,12 @@ test('CTA click renders personalized recommendation view',()=>{
   assert(panel.innerHTML.includes('เริ่มวัดและบันทึกความดัน'));
   assert(panel.innerHTML.includes('สิ่งที่อาจคุยกับแพทย์เพิ่มเติม'));
   assert(!panel.classList.contains('plan-hidden'),'recommendation panel should be visible after click');
+});
+
+test('emergency and exclusion results never mount recommendation CTA',()=>{
+  result.launch=null;result.hasResultShell=false;result.innerHTML='<div class="alert danger">ควรได้รับการประเมินเร่งด่วน</div>';
+  ctx.HeartCheckClinicalContent.refineResult();
+  assert.equal(result.launch,null,'recommendation CTA must not mount outside a calculated result shell');
 });
 
 if(process.exitCode)process.exit(process.exitCode);

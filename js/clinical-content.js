@@ -36,6 +36,7 @@ function renderPlan(result){
 }
 function refineResult(){
  const result=q('#result');if(!result||result.hidden||!result.innerHTML)return;
+ if(!result.querySelector('.result-shell'))return;
  const band=result.querySelector('.risk-band');if(band&&band.textContent.trim()==='ความเสี่ยงค่อนข้างต่ำ')band.textContent='ความเสี่ยงเพิ่มขึ้นเล็กน้อย';
  const hero=result.querySelector('.result-hero');if(hero&&!result.querySelector('.risk-context-note')){const p=document.createElement('p');p.className='result-muted risk-context-note';p.textContent='ระดับความเสี่ยงนี้เป็นการประมาณความเสี่ยง ไม่ใช่การวินิจฉัยโรค';hero.appendChild(p)}
  const sbp=num('sbp'),dbp=num('dbp'),ldl=num('ldl'),age=num('age'),dm=num('dm'),egfr=num('egfr');const action=result.querySelector('.action-card')||result.querySelector('.meaning-card')||result;
