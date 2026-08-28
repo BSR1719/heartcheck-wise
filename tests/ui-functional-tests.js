@@ -1,4 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const stylesheet=fs.readFileSync('css/style.css','utf8');
 class El{constructor(id){this.id=id;this.value='';this.innerHTML='';this.hidden=id==='result';this.checked=false;this.listeners={}}addEventListener(n,f){this.listeners[n]=f}scrollIntoView(){}reset(){Object.values(elements).forEach(e=>{if(e!==this){e.value='';e.checked=false}})}}
 const ids=[...fs.readFileSync('index.html','utf8').matchAll(/id="([^"]+)"/g)].map(m=>m[1]),elements={};ids.forEach(id=>elements[id]=new El(id));
 const redflags=[new El(),new El()];
@@ -31,6 +32,7 @@ test('TC upper range error is Thai-first',()=>{full();elements.tc.value='321';su
 test('BMI lower boundary suppresses HF only',()=>{full();elements.heightCm.value='200';elements.weightKg.value='73.9';submit();assert(has('ยังไม่แสดงความเสี่ยงภาวะหัวใจล้มเหลว'));assert(!metricIsDash('โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)'));assert(metricIsDash('ภาวะหัวใจล้มเหลว 10 ปี (HF)'))});
 test('BMI supported boundary produces HF',()=>{full();elements.heightCm.value='200';elements.weightKg.value='74';submit();assert(!metricIsDash('ภาวะหัวใจล้มเหลว 10 ปี (HF)'))});
 test('reset clears outputs',()=>{full();submit();UI.reset();assert(elements.result.hidden);assert.equal(elements.result.innerHTML,'');assert.equal(elements.age.value,'')});
+test('hidden result is not overridden by result display styles',()=>{assert(stylesheet.includes('[hidden]{display:none!important}'))});
 test('unanswered clinical question is not No',()=>{base();elements.dm.value='';submit();assert(has('กรุณาตอบคำถามเรื่องเบาหวาน'))});
 test('3-5 percent band remains guideline threshold',()=>{const v=UI.interpretation({ascvd10:3.4});assert.equal(v.band.cls,'borderline');assert(!v.band.label.includes('คาบเส้น'))});
 test('risk meaning gives event and non-event frequencies',()=>{const s=UI.peopleMeaning(3.4,'โรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง',10);assert(s.includes('ประมาณ 3–4 คน'));assert(s.includes('อีกประมาณ 96–97 คน'));assert(s.includes('ภายใน 10 ปีข้างหน้า'))});
@@ -41,4 +43,4 @@ test('clinical audit preserves severe BP symptom distinction',()=>{assert(audit.
 test('clinical audit protects LDL 190 from low-risk reassurance',()=>assert(audit.includes('LDL-C ≥190 mg/dL')));
 test('clinical audit adds diabetes context',()=>assert(audit.includes('เบาหวานอายุ 40–75 ปี')));
 test('clinical audit adds CKD context',()=>assert(audit.includes('โรคไตเรื้อรัง')));
-console.log(`\nUI/clinical regression tests: ${passed}/27 passed, ${27-passed} failed`);if(process.exitCode)process.exit(process.exitCode);
+console.log(`\nUI/clinical regression tests: ${passed}/28 passed, ${28-passed} failed`);if(process.exitCode)process.exit(process.exitCode);
