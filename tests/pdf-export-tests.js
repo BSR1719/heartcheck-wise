@@ -4,8 +4,8 @@ const pdf=fs.readFileSync('js/pdf-export.js','utf8');
 function test(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name,'-',e.message);process.exitCode=1}}
 
 test('index loads PDF export after clinical content',()=>{
-  const clinical=index.indexOf('<script src="js/clinical-content.js"></script>');
-  const exportPos=index.indexOf('<script src="js/pdf-export.js"></script>');
+  const clinical=index.indexOf('<script src="js/clinical-content.js?v=__GIT_COMMIT_SHA__"></script>');
+  const exportPos=index.indexOf('<script src="js/pdf-export.js?v=__GIT_COMMIT_SHA__"></script>');
   assert(clinical>=0);assert(exportPos>clinical,'pdf-export.js must load after clinical-content.js');
 });
 
@@ -26,6 +26,13 @@ test('page applies privacy-focused browser policy',()=>{
   assert(index.includes("form-action 'self'"));
   assert(!index.includes('ข้อมูลของคุณปลอดภัย'));
   assert(index.includes('ไม่มีช่องชื่อ HN โทรศัพท์ หรืออีเมล'));
+});
+
+test('deployed static assets are cache-busted by the injected commit SHA',()=>{
+  assert(index.includes('css/style.css?v=__GIT_COMMIT_SHA__'));
+  for(const path of ['js/prevent-base.js','js/app.js','js/clinical-content.js','js/pdf-export.js']){
+    assert(index.includes(`${path}?v=__GIT_COMMIT_SHA__`),`${path} is not version pinned`);
+  }
 });
 
 test('PDF export exposes one-page save action',()=>{

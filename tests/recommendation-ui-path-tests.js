@@ -8,8 +8,8 @@ function test(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error(
 
 // Static wiring contract: deployed page must load app first, then the clinical-content UI layer.
 test('index loads clinical-content after app',()=>{
-  const appPos=index.indexOf('<script src="js/app.js"></script>');
-  const clinicalPos=index.indexOf('<script src="js/clinical-content.js"></script>');
+  const appPos=index.indexOf('<script src="js/app.js?v=__GIT_COMMIT_SHA__"></script>');
+  const clinicalPos=index.indexOf('<script src="js/clinical-content.js?v=__GIT_COMMIT_SHA__"></script>');
   assert(appPos>=0,'app.js script missing');
   assert(clinicalPos>appPos,'clinical-content.js must load after app.js');
 });
