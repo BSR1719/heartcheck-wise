@@ -1,12 +1,16 @@
 # HeartCheck Wise PREVENT v2.3 — Human UAT 50+ Test Case Pack
 
-Frozen technical baseline: `dfd5379c758746a1f32829bdc45c0e6182471c69`
-Baseline branch: `pre-human-uat-baseline-2026-08-25`
+Frozen integrated UAT candidate: `9d4122bd0267f7f4fc2848efcf766a2391543329`
+Candidate source branch at lock: `prevent-v2-working-prototype`
+Candidate lock date: 2026-08-28 (Asia/Bangkok)
 Purpose: standardized fictional profiles for Human UAT of usability, comprehension, prioritization and safety communication.
 
 ## Test administration rules
 
 - Use only fictional test profiles from this pack for moderated UAT scenarios.
+- Before each session, verify that the application displays commit
+  `9d4122bd0267f7f4fc2848efcf766a2391543329`. Stop and do not record the session
+  against this round if the displayed SHA differs or is unresolved.
 - The moderator must not explain the result before post-result comprehension questions are answered.
 - Record displayed outputs exactly as shown. If a numerical output differs from the validated baseline unexpectedly, stop that test case and open a defect.
 - Do not alter equation, input mapping or safety logic during the UAT round.

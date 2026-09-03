@@ -2,6 +2,11 @@
 
 Status: **UAT candidate — not authorized for public clinical production**
 
+Locked integrated UAT candidate:
+`9d4122bd0267f7f4fc2848efcf766a2391543329` (locked 2026-08-28,
+Asia/Bangkok; automated QA, Pages deployment and 12-case bench retest passed). Results recorded against any other SHA
+do not satisfy this protocol.
+
 ## Release gates
 
 All gates below must pass before merging to `main` for a public clinical release.

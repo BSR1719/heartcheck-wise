@@ -2,6 +2,10 @@
 
 Use one sheet per participant. Do not record name, HN, phone number or other direct identifier.
 
+UAT candidate SHA: `9d4122bd0267f7f4fc2848efcf766a2391543329`
+
+Before starting: [ ] displayed SHA matches the UAT candidate  [ ] test stopped because SHA does not match
+
 ## A. Session information
 
 - Study ID: __________
@@ -14,6 +18,7 @@ Use one sheet per participant. Do not record name, HN, phone number or other dir
 - Uses reading glasses for smartphone: [ ] Yes  [ ] No
 - Self-rated smartphone confidence before test: 1  2  3  4  5
 - UAT case(s): __________
+- Observed application SHA: __________________________________________
 
 ## B. Task completion
 

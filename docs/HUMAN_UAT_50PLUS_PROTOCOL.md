@@ -1,8 +1,24 @@
 # HeartCheck Wise PREVENT v2.3 — Human UAT Protocol (50+)
 
-Status: Draft for Human UAT
-Frozen technical baseline: `dfd5379c758746a1f32829bdc45c0e6182471c69`
-Baseline branch: `pre-human-uat-baseline-2026-08-25`
+Status: Draft for Human UAT — candidate SHA locked; human execution pending
+Frozen integrated UAT candidate: `9d4122bd0267f7f4fc2848efcf766a2391543329`
+Candidate source branch at lock: `prevent-v2-working-prototype`
+Candidate lock date: 2026-08-28 (Asia/Bangkok)
+
+The commit SHA above is the sole source baseline for the next UAT round. Automated
+QA, isolated Pages deployment and the 12-case browser bench retest passed. The older
+technical baseline `dfd5379c758746a1f32829bdc45c0e6182471c69` and the PDF component
+baseline `14da4f69f70928234999f54b028151068456100a` remain historical evidence only;
+they must not be substituted for the integrated candidate during execution or sign-off.
+
+The superseded integrated candidate
+`e86b0c293d18ebb9a6374a6d6a806628de18567a` completed bench execution but produced
+UX-01 through UX-03 in `UAT_BENCH_EXECUTION_2026-08-28.md` and must not be used
+for participant recruitment.
+
+The intermediate local remediation candidate
+`b4da03ce4683de975d95597a4eacc74acbcfbec2` resolved UX-01 through UX-03 but was
+superseded before Human UAT by privacy hardening and self-hosted runtime assets.
 
 ## 1. Objective
 Evaluate whether adults aged 50 years and older can independently use HeartCheck Wise, understand the PREVENT risk result, identify the most important modifiable risk factor(s), and understand the appropriate next action without clinician coaching.
@@ -97,7 +113,7 @@ Stop release progression and open an issue if any participant is led by the UI t
 For each participant record only a study ID, age band, device class, completion status, completion time, moderator assistance count, comprehension scores, priority/action correctness, confidence score, confusing wording, visual/accessibility problems, and free-text observations.
 
 ## 11. Change-control rule during Human UAT
-Do not modify the frozen baseline branch. All UAT findings should become issues or be implemented on a new post-baseline working branch. Changes affecting equations, variable mapping, numerical output, emergency gating, or safety logic require technical regression and numerical validation before returning to Human UAT.
+Do not modify or move the source used to execute the frozen candidate SHA. All UAT findings should become issues or be implemented on a new post-candidate working branch. Any code, content, style, asset, dependency or workflow change produces a new candidate SHA and requires an explicit impact assessment. Changes affecting equations, variable mapping, numerical output, emergency gating, safety logic or recommendation logic require technical regression and numerical validation before returning to Human UAT.
 
 ## 12. Exit decision
 Classify the round as:

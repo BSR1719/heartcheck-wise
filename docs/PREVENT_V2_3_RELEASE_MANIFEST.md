@@ -3,6 +3,34 @@
 ## Intended status
 UAT / pre-production candidate. Not yet a public clinical release.
 
+## Locked integrated Human UAT candidate
+- Commit: `9d4122bd0267f7f4fc2848efcf766a2391543329`
+- Locked: 2026-08-28 (Asia/Bangkok)
+- Source branch at lock: `prevent-v2-working-prototype`
+- Scope: PREVENT engine, safety gates, patient-facing clinical communication,
+  recommendation engine v1.1, responsive UI and one-page PDF export as integrated
+  at the commit above.
+- Rule: Human UAT evidence and clinical/privacy sign-off are valid only for this
+  exact commit. Any subsequent change requires a new candidate SHA and documented
+  impact assessment; affected gates must be rerun.
+
+Historical component baselines such as `dfd5379c758746a1f32829bdc45c0e6182471c69`
+(pre-human-UAT technical baseline) and `14da4f69f70928234999f54b028151068456100a`
+(one-page PDF component baseline) support provenance but do not replace the locked
+integrated candidate.
+
+Candidate `e86b0c293d18ebb9a6374a6d6a806628de18567a` is superseded after initial bench UAT
+identified three comprehension/error-message findings. The locked candidate
+remediates those findings without changing PREVENT equations, safety thresholds
+or recommendation rules.
+
+Candidate `9d4122bd0267f7f4fc2848efcf766a2391543329` additionally self-hosts the logo,
+html2canvas and jsPDF, retains dependency licenses/digests, applies a no-referrer
+policy and restrictive CSP meta policy, and replaces broad privacy assurances
+with factual data-flow wording. GitHub Actions QA, isolated Pages deployment and
+the complete 12-case deployed-browser bench set passed. Real-device testing,
+participant comprehension UAT and human review of the exported PDF remain pending.
+
 ## Source of truth
 - Calculation model: AHA PREVENT base equations, AHAprevent R package v1.0.0 supplied from AHA-DS-Analytics/PREVENT.
 - Browser engine: `js/prevent-base.js` JavaScript port.
@@ -37,6 +65,10 @@ UAT / pre-production candidate. Not yet a public clinical release.
 
 ## Merge criterion
 The branch may be considered technically ready for a controlled UAT preview after CI is green. Public clinical deployment requires completion of `docs/PREVENT_V2_3_UAT.md` and explicit clinical governance approval.
+
+For the locked candidate, the remaining release gates are human functional and
+50+ comprehension UAT, device/accessibility evidence, cardiology/preventive-medicine
+sign-off, privacy/PDPA governance sign-off and a recorded production decision.
 
 ## Version traceability
 These identifiers are independent and must not be used interchangeably:

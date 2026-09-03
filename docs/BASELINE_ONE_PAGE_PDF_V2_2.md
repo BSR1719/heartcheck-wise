@@ -7,6 +7,11 @@ Frozen commit: `14da4f69f70928234999f54b028151068456100a`
 Frozen on: 2026-08-25 (Asia/Bangkok)
 Source branch at freeze: `prevent-v2-working-prototype`
 
+Integrated Human UAT note: this component baseline is retained for provenance.
+Formal integrated UAT uses candidate
+`9d4122bd0267f7f4fc2848efcf766a2391543329`, which includes this PDF behavior plus
+the later documentation freeze. Sign-off must reference the integrated candidate SHA.
+
 ## Scope of this baseline
 
 This baseline freezes the one-page A4 PDF report experience used after a PREVENT assessment. The frozen snapshot includes:
