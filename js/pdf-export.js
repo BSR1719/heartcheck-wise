@@ -27,8 +27,8 @@ function ensurePdfButton(){
   const container=result();
   if(!container||container.hidden||!container.innerHTML||!container.querySelector('.result-shell')||container.querySelector('.pdf-export-wrap'))return;
   const wrap=document.createElement('div');wrap.className='pdf-export-wrap';
-  wrap.innerHTML='<button type="button" class="pdf-export-button" aria-label="บันทึกสรุปผลการประเมินเป็น PDF">บันทึกสรุป 1 หน้า PDF</button><p>สรุปความเสี่ยง สิ่งที่ควรใส่ใจก่อน และแผน 90 วัน ลงใน A4 หน้าเดียว</p><div class="pdf-status" aria-live="polite"></div>';
-  container.appendChild(wrap);wrap.querySelector('.pdf-export-button').addEventListener('click',downloadResultPdf);
+  wrap.innerHTML='<div class="export-buttons"><button type="button" class="pdf-export-button" aria-label="บันทึกสรุปผลการประเมินเป็น PDF">บันทึกสรุป 1 หน้า PDF</button><button type="button" class="img-export-button" aria-label="บันทึกหรือแชร์สรุปผลเป็นรูปภาพ">บันทึก/แชร์รูป (PNG)</button></div><p>สรุปความเสี่ยง สิ่งที่ควรใส่ใจก่อน และแผน 90 วัน · บันทึกเป็น PDF หรือรูปภาพเพื่อแชร์ (เช่น ทาง LINE)</p><div class="pdf-status" aria-live="polite"></div>';
+  container.appendChild(wrap);wrap.querySelector('.pdf-export-button').addEventListener('click',downloadResultPdf);wrap.querySelector('.img-export-button').addEventListener('click',downloadResultImage);
 }
 function expandForPdf(container){
   const planButton=container.querySelector('.plan-button'),panel=container.querySelector('.personal-plan');
@@ -36,6 +36,7 @@ function expandForPdf(container){
 }
 function setStatus(message,isError=false){const el=q('.pdf-status');if(!el)return;el.textContent=message||'';el.classList.toggle('error',!!isError)}
 function setBusy(busy){const btn=q('.pdf-export-button');if(!btn)return;btn.disabled=busy;btn.textContent=busy?'กำลังสร้าง PDF…':'บันทึกสรุป 1 หน้า PDF'}
+function setBusyImage(busy){const btn=q('.img-export-button');if(!btn)return;btn.disabled=busy;btn.textContent=busy?'กำลังสร้างรูป…':'บันทึก/แชร์รูป (PNG)'}
 function clean(t){return String(t||'').replace(/\s+/g,' ').trim()}
 function text(el,sel){const n=el&&el.querySelector(sel);return clean(n&&n.textContent)}
 function metricValue(container,pattern){
@@ -128,6 +129,28 @@ async function downloadResultPdf(){
   try{const blob=await buildPdfBlob(),mode=await deliverPdf(blob);if(mode==='shared')setStatus('สร้างสรุป 1 หน้าแล้ว เลือก Save to Files หรือแอปที่ต้องการได้เลย');else if(mode==='cancelled')setStatus('สร้าง PDF แล้ว แต่ยังไม่ได้เลือกที่บันทึก');else setStatus('สร้าง PDF แล้ว หากไม่เห็นไฟล์ให้ตรวจใน Downloads/Files')}
   catch(e){console.error(e);setStatus('ยังสร้าง PDF ไม่สำเร็จ กรุณาเปิดใน Safari หรือ Chrome แล้วลองอีกครั้ง',true)}finally{setBusy(false)}
 }
+async function ensureHtml2canvas(){await loadScript(PDF_LIBRARIES.html2canvas,()=>typeof window.html2canvas==='function')}
+async function buildImageBlob(){
+  const container=result();if(!container||container.hidden)throw new Error('ยังไม่มีผลการประเมิน');
+  await ensureHtml2canvas();
+  const report=buildOnePageReport(reportData(container));
+  try{
+    await waitForImages(report);
+    const canvas=await window.html2canvas(report,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    return await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('สร้างรูปไม่สำเร็จ')),'image/png'));
+  }finally{report.remove()}
+}
+function imageFilename(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return `HeartCheck-Wise-OnePage-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.png`}
+async function deliverImage(blob){
+  const name=imageFilename(),file=new File([blob],name,{type:'image/png'});
+  if(navigator.share&&navigator.canShare){try{if(navigator.canShare({files:[file]})){await navigator.share({files:[file]});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancelled'}}
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);return 'downloaded';
+}
+async function downloadResultImage(){
+  setBusyImage(true);setStatus('กำลังสร้างรูปสรุป…');
+  try{const blob=await buildImageBlob(),mode=await deliverImage(blob);if(mode==='shared')setStatus('สร้างรูปแล้ว เลือกแชร์ไป LINE หรือบันทึกรูปได้เลย');else if(mode==='cancelled')setStatus('สร้างรูปแล้ว แต่ยังไม่ได้เลือกที่บันทึก');else setStatus('บันทึกรูปแล้ว หากไม่เห็นไฟล์ให้ตรวจใน Downloads/Photos')}
+  catch(e){console.error(e);setStatus('ยังสร้างรูปไม่สำเร็จ กรุณาลองอีกครั้ง',true)}finally{setBusyImage(false)}
+}
 function addStyles(){
   if(q('#pdf-export-styles'))return;const s=document.createElement('style');s.id='pdf-export-styles';s.textContent=`
 .pdf-export-wrap{margin-top:20px;padding:18px;border-radius:18px;background:#f7fbff;border:1px solid #d6e7f3;text-align:center}.pdf-export-button{width:100%;min-height:56px;border:0;border-radius:14px;background:#0a4f91;color:#fff;font:inherit;font-weight:900;font-size:17px;cursor:pointer}.pdf-export-button:disabled{opacity:.65;cursor:wait}.pdf-export-wrap>p{margin:9px 0 0;color:#60778d;font-size:12px}.pdf-status{margin-top:10px;color:#17643f;font-size:13px;font-weight:700}.pdf-status.error{color:#b42318}
@@ -136,5 +159,5 @@ function addStyles(){
 `;document.head.appendChild(s)
 }
 addStyles();const target=result();if(target){const observer=new MutationObserver(()=>setTimeout(ensurePdfButton,0));observer.observe(target,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});setTimeout(ensurePdfButton,0)}
-window.HeartCheckPdfExport={ensurePdfButton,downloadResultPdf,buildPdfBlob,deliverPdf,expandForPdf,ensurePdfLibraries,reportData,buildOnePageReport,riskMeaning,countRange,complementRange,riskCountLabel,prioritySupportHtml};
+window.HeartCheckPdfExport={ensurePdfButton,downloadResultPdf,buildPdfBlob,deliverPdf,expandForPdf,ensurePdfLibraries,reportData,buildOnePageReport,riskMeaning,countRange,complementRange,riskCountLabel,prioritySupportHtml,downloadResultImage,buildImageBlob,deliverImage,ensureHtml2canvas};
 })();
