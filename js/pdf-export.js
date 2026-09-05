@@ -122,7 +122,7 @@ async function buildPdfBlob(){
 function pdfFilename(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return `HeartCheck-Wise-OnePage-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.pdf`}
 async function deliverPdf(blob){
   const name=pdfFilename(),file=new File([blob],name,{type:'application/pdf'});
-  if(navigator.share&&navigator.canShare){try{if(navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'สรุปผล HeartCheck Wise'});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancelled'}}
+  if(navigator.share&&navigator.canShare){try{if(navigator.canShare({files:[file]})){await navigator.share({files:[file]});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'cancelled'}}
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);return 'downloaded';
 }
 async function downloadResultPdf(){
