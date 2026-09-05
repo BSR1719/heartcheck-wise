@@ -1,45 +1,41 @@
-const $=id=>document.getElementById(id);
-const radio=name=>document.querySelector(`input[name="${name}"]:checked`).value;
-const ck=id=>$(id).checked;
-let current=null;
-
-function collect(){
-  return {
-    symptoms:radio('symptoms')==='yes',
-    knownAscvd:radio('knownAscvd')==='yes',
-    ageBand:$('ageBand').value,
-    diabetes:ck('diabetes'),hypertension:ck('hypertension'),smoking:ck('smoking'),
-    dyslipidemia:ck('dyslipidemia'),ckd:ck('ckd'),familyHistory:ck('familyHistory'),
-    ldl190:ck('ldl190'),highLpa:ck('highLpa'),neverLpa:ck('neverLpa')
-  };
-}
-
-function render(r){
-  $('results').classList.remove('hidden');
-  if(r.stop){
-    $('screeningResults').classList.add('hidden');
-    $('stopCard').classList.remove('hidden');
-    $('stopCard').innerHTML=`<h2>${r.title}</h2><p>${r.text}</p>`;
-  }else{
-    $('stopCard').classList.add('hidden');
-    $('screeningResults').classList.remove('hidden');
-    $('summaryText').textContent=r.summary;
-    $('testGrid').innerHTML=r.tests.map(t=>`<article class="test-card ${t.status}"><div class="test-head"><h3>${t.name}</h3><span class="badge">${t.label}</span></div><p>${t.reason}</p></article>`).join('');
-    $('bloodList').innerHTML=r.blood.map(b=>`<div class="blood-item"><strong>✅ ${b.name}</strong><span>${b.reason}</span></div>`).join('');
-    $('bottomLine').textContent=r.bottom;
-  }
-  $('results').scrollIntoView({behavior:'smooth'});
-}
-
-function evaluate(){ current=HeartCheckV8.evaluate(collect()); render(current); }
-
-function save(){
-  if(!current||current.stop)return;
-  const lines=['HeartCheck Wise V8','',current.summary,'','การตรวจ',...current.tests.map(t=>`- ${t.name}: ${t.label} — ${t.reason}`),'','เลือดที่ควรเริ่ม',...current.blood.map(b=>`- ${b.name}: ${b.reason}`),'','หมายเหตุ: เครื่องมือนี้เพื่อ health literacy ไม่ใช้วินิจฉัยโรค'];
-  const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download='HeartCheck_Wise_V8_Result.txt';a.click();URL.revokeObjectURL(url);
-}
-
-$('evaluateBtn').addEventListener('click',evaluate);
-$('resetBtn').addEventListener('click',()=>location.reload());
-$('saveBtn').addEventListener('click',save);
-$('printBtn').addEventListener('click',()=>window.print());
+(function(global){
+'use strict';
+const q=s=>document.querySelector(s), val=id=>q('#'+id)?.value??'';
+const finite=id=>{const raw=val(id);if(raw==='')return null;const n=Number(raw);return Number.isFinite(n)?n:NaN};
+const pct=v=>v==null?'—':v.toFixed(1)+'%';
+function riskBand(r){if(r==null)return{label:'ยังประเมินไม่ได้',cls:'neutral'};if(r<3)return{label:'ความเสี่ยงต่ำ',cls:'low'};if(r<5)return{label:'ความเสี่ยงค่อนข้างต่ำ',cls:'borderline'};if(r<10)return{label:'ความเสี่ยงปานกลาง',cls:'intermediate'};return{label:'ความเสี่ยงสูง',cls:'high'}}
+function peopleMeaning(r,outcome='โรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง',years=10){if(r==null)return '';if(r<1)return `ถ้ามีคน 100 คนที่มีอายุและข้อมูลสุขภาพใกล้เคียงกับคุณ น้อยกว่า 1 คนอาจเกิด${outcome}ภายใน ${years} ปีข้างหน้า และมากกว่า 99 คนจะไม่เกิดเหตุการณ์ดังกล่าวในช่วงเวลานี้`;const lo=Math.floor(r),hi=Math.ceil(r),events=lo===hi?`${lo}`:`${lo}–${hi}`;const noLo=100-hi,noHi=100-lo,nonEvents=noLo===noHi?`${noLo}`:`${noLo}–${noHi}`;return `ถ้ามีคน 100 คนที่มีอายุและข้อมูลสุขภาพใกล้เคียงกับคุณ ประมาณ ${events} คนอาจเกิด${outcome}ภายใน ${years} ปีข้างหน้า และอีกประมาณ ${nonEvents} คนจะไม่เกิดเหตุการณ์ดังกล่าวในช่วงเวลานี้`}
+function eventSummary(r){if(r==null)return '';if(r<1)return 'น้อยกว่า 1 คนใน 100 คน';const lo=Math.floor(r),hi=Math.ceil(r);return `ประมาณ ${lo===hi?lo:`${lo}–${hi}`} คนใน 100 คน`}
+function thaiError(message){const exact={
+'age is required and must be finite':'กรุณากรอกอายุเป็นตัวเลข',
+'sex is required and must be finite':'กรุณาเลือกเพศกำเนิด',
+'sbp is required and must be finite':'กรุณากรอกความดันตัวบน (SBP) เป็นตัวเลข',
+'egfr is required and must be finite':'กรุณากรอกค่าการทำงานของไต (eGFR) เป็นตัวเลข',
+'dm is required and must be finite':'กรุณาตอบคำถามเรื่องเบาหวาน',
+'smoking is required and must be finite':'กรุณาตอบคำถามเรื่องการสูบบุหรี่',
+'bptreat is required and must be finite':'กรุณาตอบคำถามเรื่องยาลดความดัน',
+'Total cholesterol and HDL-C must be provided together':'กรุณากรอกคอเลสเตอรอลรวมและ HDL-C ให้ครบทั้งสองค่า หรือเว้นว่างทั้งสองช่อง',
+'Statin status must be explicitly answered when cholesterol values are provided':'เมื่อกรอกผลไขมัน กรุณาตอบว่ากำลังใช้ยา Statin หรือไม่',
+'Height and weight must be provided together':'กรุณากรอกส่วนสูงและน้ำหนักให้ครบทั้งสองค่า หรือเว้นว่างทั้งสองช่อง',
+'Height must be 100-250 cm':'ส่วนสูงต้องอยู่ระหว่าง 100–250 เซนติเมตร',
+'Weight must be 25-300 kg':'น้ำหนักต้องอยู่ระหว่าง 25–300 กิโลกรัม',
+'DBP must be 40-140 mmHg':'ความดันตัวล่าง (DBP) ต้องอยู่ระหว่าง 40–140 mmHg',
+'LDL-C must be 0-400 mg/dL':'LDL-C ต้องอยู่ระหว่าง 0–400 mg/dL',
+'Total cholesterol must be 130-320 mg/dL':'คอเลสเตอรอลรวมต้องอยู่ระหว่าง 130–320 mg/dL',
+'HDL-C must be 20-100 mg/dL':'HDL-C ต้องอยู่ระหว่าง 20–100 mg/dL',
+'Age must be 30-79 years':'อายุต้องอยู่ระหว่าง 30–79 ปี',
+'SBP must be 90-200 mmHg':'ความดันตัวบน (SBP) ต้องอยู่ระหว่าง 90–200 mmHg',
+'eGFR must be 15-140':'eGFR ต้องอยู่ระหว่าง 15–140'
+};if(exact[message])return exact[message];if(/ must be finite$/.test(message))return 'กรุณากรอกข้อมูลเป็นตัวเลขที่ถูกต้อง';if(/ must be explicitly Yes or No$/.test(message))return 'กรุณาเลือกคำตอบให้ชัดเจน';return message}
+function validateUI(){const errors=[];const required=['age','sex','sbp','egfr','dm','smoking','bptreat'];required.forEach(id=>{const n=finite(id);if(n==null||!Number.isFinite(n))errors.push(`${id} is required and must be finite`)});for(const id of ['sex','dm','smoking','bptreat']){const n=finite(id);if(n!=null&&Number.isFinite(n)&&![0,1].includes(n))errors.push(`${id} must be explicitly Yes or No`)}const tc=finite('tc'),hdl=finite('hdl'),statin=finite('statin'),height=finite('heightCm'),weight=finite('weightKg'),dbp=finite('dbp'),ldl=finite('ldl');for(const [id,n] of [['TC',tc],['HDL-C',hdl],['height',height],['weight',weight],['DBP',dbp],['LDL-C',ldl]])if(Number.isNaN(n))errors.push(`${id} must be finite`);if((tc==null)!==(hdl==null))errors.push('Total cholesterol and HDL-C must be provided together');if(tc!=null&&hdl!=null&&(statin==null||![0,1].includes(statin)))errors.push('Statin status must be explicitly answered when cholesterol values are provided');if((height==null)!==(weight==null))errors.push('Height and weight must be provided together');if(height!=null&&(height<100||height>250))errors.push('Height must be 100-250 cm');if(weight!=null&&(weight<25||weight>300))errors.push('Weight must be 25-300 kg');if(dbp!=null&&(dbp<40||dbp>140))errors.push('DBP must be 40-140 mmHg');if(ldl!=null&&(ldl<0||ldl>400))errors.push('LDL-C must be 0-400 mg/dL');return errors}
+function calculatedBMI(){const w=finite('weightKg'),h=finite('heightCm');if(!Number.isFinite(w)||!Number.isFinite(h)||h<=0)return null;return w/((h/100)**2)}
+function interpretation(r){if(r.ascvd10!=null){const b=riskBand(r.ascvd10);return {band:b,text:peopleMeaning(r.ascvd10,'โรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง',10)}}if(r.hf10!=null)return{band:{label:'ประเมินเฉพาะภาวะหัวใจล้มเหลว',cls:'neutral'},text:peopleMeaning(r.hf10,'ภาวะหัวใจล้มเหลว',10)+' ผลนี้เป็นการประเมินความเสี่ยงภาวะหัวใจล้มเหลวเท่านั้น เพราะข้อมูลไขมันยังไม่ครบสำหรับการประเมินโรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง'};return{band:riskBand(null),text:'ข้อมูลยังไม่เพียงพอสำหรับการประเมิน กรุณาตรวจว่ากรอกผลไขมัน และ/หรือส่วนสูงกับน้ำหนักครบแล้ว'}}
+function personalAdvice(input,ldl,bmi){const items=[];if(input.smoking===1)items.push({priority:10,title:'การสูบบุหรี่',text:'การหยุดสูบบุหรี่เป็นสิ่งสำคัญอันดับต้น ๆ ที่ช่วยลดความเสี่ยงโรคหัวใจและหลอดเลือดได้ ควรวางแผนหยุดสูบและขอความช่วยเหลือหากหยุดด้วยตนเองได้ยาก'});if(input.sbp>=140)items.push({priority:20,title:'ความดันโลหิต',text:'ความดันโลหิตของคุณสูงกว่าระดับที่เหมาะสม การควบคุมความดันให้ดีขึ้นสามารถช่วยลดความเสี่ยงโรคหัวใจและหลอดเลือดในอนาคตได้ ควรวัดซ้ำอย่างถูกต้องและติดตามอย่างสม่ำเสมอ'});else if(input.sbp>=130)items.push({priority:25,title:'ความดันโลหิต',text:'ความดันโลหิตของคุณเริ่มสูงกว่าระดับที่เหมาะสม การดูแลอาหาร การออกกำลังกาย น้ำหนัก และติดตามความดันอย่างสม่ำเสมอสามารถช่วยลดความเสี่ยงในอนาคตได้'});if(input.dm===1)items.push({priority:30,title:'เบาหวาน',text:'เบาหวานเพิ่มความเสี่ยงโรคหัวใจและหลอดเลือด การควบคุมน้ำตาล ความดัน และไขมันให้เหมาะสมเป็นเรื่องสำคัญ ควรติดตามตามแผนการรักษา'});if(input.egfr<60)items.push({priority:40,title:'การทำงานของไต',text:'ค่าการทำงานของไตของคุณลดลง ซึ่งสัมพันธ์กับความเสี่ยงโรคหัวใจและหลอดเลือดที่สูงขึ้น ควรติดตามผลและปรึกษาบุคลากรทางการแพทย์'});if(ldl!=null&&ldl>=160&&ldl<190)items.push({priority:50,title:'LDL-C',text:'ระดับ LDL-C ของคุณค่อนข้างสูง การปรับอาหาร ออกกำลังกาย และประเมินความเสี่ยงโดยรวมกับแพทย์จะช่วยวางแผนลดไขมันได้เหมาะสมขึ้น'});if(bmi!=null&&bmi>=25)items.push({priority:60,title:'น้ำหนัก',text:'น้ำหนักอยู่ในช่วงที่ควรใส่ใจ การลดน้ำหนักอย่างค่อยเป็นค่อยไปด้วยอาหารที่เหมาะสมและกิจกรรมทางกายสามารถช่วยลดความเสี่ยงระยะยาวได้'});if(!items.length)items.push({priority:100,title:'รักษาพฤติกรรมสุขภาพที่ดี',text:'ข้อมูลของคุณยังไม่พบปัจจัยเด่นที่ต้องเร่งจัดการจากแบบประเมินนี้ ควรรักษาพฤติกรรมสุขภาพที่ดีต่อเนื่อง เช่น ไม่สูบบุหรี่ ออกกำลังกายสม่ำเสมอ รับประทานอาหารเหมาะสม และติดตามความดัน ไขมัน และน้ำตาลตามช่วงเวลาที่เหมาะสม'});return items.sort((a,b)=>a.priority-b.priority)}
+function show(id){q(id).hidden=false;q(id).scrollIntoView({behavior:'smooth',block:'start'})}
+function refreshBMI(){const bmi=calculatedBMI();q('#bmiDisplay').value=bmi==null?'':bmi.toFixed(1)+' kg/m²'}
+function renderErrors(errors){q('#errors').innerHTML=`<div class="alert danger"><strong>กรุณาตรวจสอบข้อมูลที่กรอก</strong><ul>${errors.map(x=>`<li>${thaiError(x)}</li>`).join('')}</ul></div>`}
+function submit(e){e.preventDefault();q('#errors').innerHTML='';const emergency=[...document.querySelectorAll('input[name="redflag"]:checked')].length>0;if(emergency){q('#result').innerHTML='<div class="alert danger"><h2>ควรได้รับการประเมินเร่งด่วน</h2><p>หากอาการกำลังเกิดขึ้น ให้ไปห้องฉุกเฉินทันที หรือขอความช่วยเหลือจากบริการการแพทย์ฉุกเฉินในพื้นที่ กรุณาอย่ารอผลจากเครื่องมือนี้</p></div>';return show('#result')}if(val('redflagNone')!=='1')return renderErrors(['กรุณายืนยันว่าไม่มีอาการเตือนฉุกเฉินตามรายการด้านบน']);if(val('ascvdHistory')==='1'){q('#result').innerHTML='<div class="alert warning"><h2>แบบประเมินนี้ไม่เหมาะกับผู้ที่เคยมีโรคหัวใจหรือหลอดเลือดแล้ว</h2><p>หากคุณเคยมีโรคหัวใจ โรคหลอดเลือดสมอง หรือภาวะหัวใจล้มเหลว ควรใช้แผนป้องกันการเกิดโรคซ้ำร่วมกับแพทย์ ไม่ควรใช้คะแนนนี้เป็นตัวตัดสินหลัก</p></div>';return show('#result')}if(val('ascvdHistory')!=='0')return renderErrors(['กรุณาตอบคำถามเรื่องประวัติโรคหัวใจหรือหลอดเลือด']);const errors=validateUI();if(errors.length)return renderErrors(errors);const bmi=calculatedBMI(),input={sex:finite('sex'),age:finite('age'),sbp:finite('sbp'),dm:finite('dm'),smoking:finite('smoking'),egfr:finite('egfr'),bptreat:finite('bptreat'),tc:finite('tc'),hdl:finite('hdl'),statin:finite('statin'),bmi};const out=PREVENT.baseRisk(input);if(!out.ok)return renderErrors(out.errors);const r=out.result,view=interpretation(r),ldl=finite('ldl'),dbp=finite('dbp'),overrides=[];if(ldl!=null&&ldl>=190)overrides.push('LDL-C ของคุณสูงมาก (≥190 mg/dL) แม้คะแนนความเสี่ยงรวมอาจไม่สูง คุณควรพบแพทย์เพื่อประเมินสาเหตุและแนวทางดูแลเพิ่มเติม');if(input.sbp>=180||(dbp!=null&&dbp>=120))overrides.push('ความดันของคุณสูงมาก ควรวัดซ้ำอย่างถูกต้อง และหากยังสูงหรือมีอาการผิดปกติควรได้รับการประเมินจากบุคลากรทางการแพทย์โดยเร็ว');const primaryRisk=r.ascvd10==null?r.hf10:r.ascvd10;const primaryOutcome=r.ascvd10==null?'ภาวะหัวใจล้มเหลว':'โรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง';const hfNote=r.hf10==null&&r.ascvd10!=null?`<div class="alert warning">${bmi==null?'ยังไม่แสดงความเสี่ยงภาวะหัวใจล้มเหลว เพราะยังไม่มีข้อมูลส่วนสูงและน้ำหนักสำหรับคำนวณ BMI แต่ผลความเสี่ยงโรคหลอดเลือดหัวใจและสมองยังคำนวณได้':'ยังไม่แสดงความเสี่ยงภาวะหัวใจล้มเหลว เพราะ BMI อยู่นอกช่วงที่สมการรองรับ แต่ผลความเสี่ยงโรคหลอดเลือดหัวใจและสมองยังคำนวณได้'}</div>`:'';const longTerm=r.ascvd30!=null?`<div class="result-card long-term-card"><span class="result-kicker">มองความเสี่ยงให้ไกลขึ้น</span><div class="long-term-value">${pct(r.ascvd30)}</div><p>ความเสี่ยง${primaryOutcome}ใน 30 ปี</p><p class="result-muted">${peopleMeaning(r.ascvd30,'โรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมอง',30)}</p></div>`:'';q('#result').innerHTML=`<div class="result-shell"><section class="result-hero ${view.band.cls}"><div><span class="result-kicker">ผลการประเมินความเสี่ยงใน 10 ปี</span><div class="risk-number">${pct(primaryRisk)}</div><div class="risk-band">${view.band.label}</div></div><div class="risk-frequency"><strong>${eventSummary(primaryRisk)}</strong><span>ที่มีข้อมูลสุขภาพใกล้เคียงกับคุณ</span></div></section><section class="result-card meaning-card"><h3>ผลนี้หมายถึงอะไร?</h3><p>${view.text}</p><p class="result-muted">ผลนี้เป็นการประมาณความเสี่ยงของกลุ่มประชากร ไม่ได้หมายความว่าคุณจะเกิดหรือไม่เกิดโรคแน่นอน</p></section>${longTerm}${hfNote}${overrides.length?`<div class="alert warning"><strong>มีข้อมูลที่ควรพบแพทย์เพิ่มเติม</strong><ul>${overrides.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}<details class="result-card detail-card"><summary><strong>ดูผลโดยละเอียด</strong></summary><div class="metric-grid"><div class="metric"><span>โรคหลอดเลือดหัวใจ/สมอง 10 ปี (ASCVD)</span><strong>${pct(r.ascvd10)}</strong></div><div class="metric"><span>โรคหัวใจและหลอดเลือดโดยรวม 10 ปี (CVD)</span><strong>${pct(r.cvd10)}</strong></div><div class="metric"><span>ภาวะหัวใจล้มเหลว 10 ปี (HF)</span><strong>${pct(r.hf10)}</strong></div><div class="metric"><span>โรคหลอดเลือดหัวใจ/สมอง 30 ปี (ASCVD)</span><strong>${pct(r.ascvd30)}</strong></div><div class="metric"><span>โรคหัวใจและหลอดเลือดโดยรวม 30 ปี (CVD)</span><strong>${pct(r.cvd30)}</strong></div><div class="metric"><span>ภาวะหัวใจล้มเหลว 30 ปี (HF)</span><strong>${pct(r.hf30)}</strong></div></div></details><section class="result-card evidence-card"><h3>แบบประเมินนี้อ้างอิงจากอะไร?</h3><p>ค่าความเสี่ยงคำนวณจาก <strong>AHA PREVENT™ Equations</strong> ส่วนข้อความเรื่องความดัน ไขมัน และการป้องกันใช้แนวทางวิชาการร่วมสมัยเป็นข้อมูลประกอบ โดยไม่เปลี่ยนสูตร PREVENT</p><p class="result-muted"><strong>ข้อจำกัด:</strong> PREVENT พัฒนาและปรับเทียบจากประชากรสหรัฐอเมริกา ยังไม่ได้ปรับเทียบกับประชากรไทยโดยเฉพาะ ค่าที่แสดงเป็นการประมาณ เป็นการคัดกรอง ไม่ใช่การวินิจฉัย ควรปรึกษาแพทย์เพื่อการแปลผลและวางแผน</p><a href="#references">ดูแหล่งอ้างอิงและข้อจำกัดของแบบประเมิน</a></section><div class="result-section small"><strong>ข้อมูลทางเทคนิค:</strong> HeartCheck Wise app 8.0.0 · PREVENT equation/source: AHAprevent R package 1.0.0 base equations · UAT release: PREVENT v2.3 · Commit: <span id="commitSha">__GIT_COMMIT_SHA__</span>.</div></div>`;show('#result')}
+function reset(){q('#riskForm').reset();q('#bmiDisplay').value='';q('#result').hidden=true;q('#result').innerHTML='';q('#errors').innerHTML='';global.scrollTo({top:0,behavior:'smooth'})}
+q('#weightKg').addEventListener('input',refreshBMI);q('#heightCm').addEventListener('input',refreshBMI);q('#riskForm').addEventListener('submit',submit);q('#resetBtn').addEventListener('click',reset);
+global.HeartCheckWiseUI={validateUI,calculatedBMI,interpretation,peopleMeaning,eventSummary,personalAdvice,submit,reset};
+})(window);

@@ -2,9 +2,10 @@ name: HeartCheck Wise QA
 
 on:
   push:
-    branches: [main, v8-simple-screening]
+    branches: [main, v8-simple-screening, prevent-v2-working-prototype]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   safety-regression-tests:
@@ -20,5 +21,52 @@ jobs:
         run: |
           node --check js/app.js
           node --check js/clinical-rules.js
-      - name: Clinical safety regression tests
+          node --check js/prevent-base.js
+          node --check js/recommendation-engine.js
+          node --check js/pdf-export.js
+          node --check tests/prevent-validation.js
+          node --check tests/prevent-extended-validation.js
+          node --check tests/prevent-independent-validation.js
+          node --check tests/prevent-live-aha-parity.js
+          node --check tests/ui-functional-tests.js
+          node --check tests/recommendation-engine-tests.js
+          node --check tests/recommendation-ui-path-tests.js
+          node --check tests/pdf-export-tests.js
+      - name: Legacy clinical safety regression tests
         run: node tests/qa-tests.js
+      - name: PREVENT v2.1 deterministic reference validation
+        run: node tests/prevent-validation.js
+      - name: PREVENT independent numerical cross-validation
+        run: node tests/prevent-independent-validation.js
+      - name: PREVENT v2.2 extended deterministic validation
+        run: node tests/prevent-extended-validation.js
+      - name: Current UI functional tests
+        run: node tests/ui-functional-tests.js
+      - name: Personalized recommendation engine v1.1 deterministic tests
+        run: node tests/recommendation-engine-tests.js
+      - name: Recommendation CTA integration path
+        run: node tests/recommendation-ui-path-tests.js
+      - name: PDF export regression tests
+        run: node tests/pdf-export-tests.js
+      - name: PREVENT v2.3 optional live AHA verification
+        id: live_aha
+        timeout-minutes: 3
+        run: node tests/prevent-live-aha-parity.js
+      - name: Report live AHA verification status
+        if: always()
+        run: |
+          status=$(jq -r '.summary.status // "UNAVAILABLE"' validation/prevent-live-aha-parity-report.json 2>/dev/null || echo UNAVAILABLE)
+          echo "### Live AHA parity: $status" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" = "UNAVAILABLE" ]; then
+            echo "::warning title=Live AHA parity UNAVAILABLE::External endpoint could not be verified; this is not a parity PASS."
+          elif [ "$status" != "PASS" ]; then
+            echo "::error title=Live AHA parity FAIL::Official comparison reported a discrepancy."
+            exit 1
+          fi
+      - name: Upload live AHA verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prevent-live-aha-parity-report
+          path: validation/prevent-live-aha-parity-report.json
+          if-no-files-found: ignore

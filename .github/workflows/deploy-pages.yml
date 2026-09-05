@@ -2,7 +2,7 @@ name: Deploy HeartCheck Wise to GitHub Pages
 
 on:
   push:
-    branches: ["main", "prevent-v2-working-prototype"]
+    branches: ["prevent-v2-working-prototype"]
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  uat-deterministic-qa:
+    if: github.ref == 'refs/heads/prevent-v2-working-prototype'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Deterministic QA for deployment SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check js/app.js
+          node --check js/prevent-base.js
+          node --check tests/ui-functional-tests.js
+          node tests/qa-tests.js
+          node tests/prevent-validation.js
+          node tests/prevent-extended-validation.js
+          node tests/ui-functional-tests.js
+
   deploy:
+    needs: [uat-deterministic-qa]
+    if: always() && (github.ref == 'refs/heads/main' || needs.uat-deterministic-qa.result == 'success')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -30,7 +53,7 @@ jobs:
       - name: Checkout PREVENT v2.3 UAT branch
         uses: actions/checkout@v4
         with:
-          ref: prevent-v2-working-prototype
+          ref: ${{ github.ref == 'refs/heads/prevent-v2-working-prototype' && github.sha || 'prevent-v2-working-prototype' }}
           path: uat-source
 
       - name: Build production root plus isolated UAT preview
@@ -40,6 +63,8 @@ jobs:
             --exclude '.git' \
             --exclude '.github' \
             uat-source/ site/uat/prevent-v2.3/
+          UAT_SHA=$(git -C uat-source rev-parse HEAD)
+          sed -i "s/__GIT_COMMIT_SHA__/$UAT_SHA/g" site/uat/prevent-v2.3/index.html site/uat/prevent-v2.3/js/app.js
           touch site/.nojekyll
 
       - name: Configure Pages

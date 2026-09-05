@@ -1,0 +1,6 @@
+/*
+  Content-Security-Policy: frame-ancestors 'self' https://bangkokhospital.com https://*.bangkokhospital.com
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Cache-Control: no-cache
