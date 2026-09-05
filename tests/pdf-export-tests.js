@@ -1,6 +1,8 @@
 const fs=require('fs'),assert=require('assert');
 const index=fs.readFileSync('index.html','utf8');
 const pdf=fs.readFileSync('js/pdf-export.js','utf8');
+const reportCss=fs.readFileSync('css/report.css','utf8');
+const pdfStyles=pdf+reportCss;/* one-page report styles moved to the linked css/report.css (CSP style-src 'self' blocks injected <style>) */
 function test(name,fn){try{fn();console.log('PASS',name)}catch(e){console.error('FAIL',name,'-',e.message);process.exitCode=1}}
 
 test('index loads PDF export after clinical content',()=>{
@@ -56,7 +58,7 @@ test('PDF is generated directly without print dialog',()=>{
 test('PDF is explicitly designed as a single A4 page',()=>{
   assert(pdf.includes("format:'a4'"));
   assert(pdf.includes('pdf-one-page-report'));
-  assert(pdf.includes('width:794px;height:1123px'));
+  assert(pdfStyles.includes('width:794px;height:1123px'));
   assert(!pdf.includes('doc.addPage('));
 });
 
@@ -88,8 +90,8 @@ test('single-priority layout adds action support instead of dead space',()=>{
 });
 
 test('footer readability is increased for print',()=>{
-  assert(pdf.includes('font-size:8.5px'));
-  assert(pdf.includes('line-height:1.35'));
+  assert(pdfStyles.includes('font-size:8.5px'));
+  assert(pdfStyles.includes('line-height:1.35'));
 });
 
 test('iPhone path shares a real PDF File',()=>{
@@ -107,7 +109,7 @@ test('fallback downloads generated PDF blob',()=>{
 test('Thai content is rendered from DOM into PDF image',()=>{
   assert(pdf.includes('window.html2canvas(report'));
   assert(pdf.includes("canvas.toDataURL('image/jpeg'"));
-  assert(pdf.includes('Noto Sans Thai'));
+  assert(pdfStyles.includes('Noto Sans Thai'));
 });
 
 test('report includes clinical disclaimer and evidence reference',()=>{
