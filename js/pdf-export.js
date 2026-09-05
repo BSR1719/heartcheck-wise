@@ -95,7 +95,7 @@ function meaningHtml(data){
 function buildOnePageReport(data){
   const report=document.createElement('section');report.className='pdf-one-page-report';
   report.innerHTML=`
-    <div class="r-body"><header class="r-head"><img src="${LOGO}" crossorigin="anonymous" alt="Bangkok Hospital Surat"><div class="r-brand"><b>HeartCheck Wise</b><span>ผลประเมินเพื่อการป้องกันโรคหัวใจและหลอดเลือด</span></div><div class="r-date">${esc(nowThai())}</div></header>
+    <div class="r-body"><header class="r-head"><img src="${LOGO}" crossorigin="anonymous" alt="Bangkok Hospital Surat"><div class="r-brand"><b>HeartCheck Wise · PREVENT</b><span>ประเมินด้วยสมการ AHA PREVENT™ · ใช้ผลเลือด</span></div><div class="r-date">${esc(nowThai())}</div></header>
     <section class="r-risk"><div><span>ความเสี่ยงโรคหัวใจขาดเลือดหรือโรคหลอดเลือดสมองใน 10 ปี</span><strong>${esc(data.risk)}</strong><em>${esc(riskCountLabel(data.risk,10))}</em><b>${esc(data.band)}</b><small>เป็นการประมาณความเสี่ยง ไม่ใช่การวินิจฉัยโรค</small></div><div class="r-risk-side"><span>มองระยะยาว 30 ปี</span><strong>${esc(data.ascvd30||'—')}</strong><em>${esc(riskCountLabel(data.ascvd30,30))}</em><small>ช่วงเวลาที่ยาวกว่าจึงมักเห็นความเสี่ยงสะสมสูงขึ้น</small></div></section>
     ${meaningHtml(data)}
     <section class="r-grid"><div class="r-card r-priority-card"><h2>สิ่งที่ควรใส่ใจก่อน</h2>${priorityHtml(data.priorities)}${prioritySupportHtml(data.priorities)}</div><div class="r-card r-plan"><h2>แผนของคุณใน 90 วัน</h2>${timelineHtml(data.timeline)}</div></section>
